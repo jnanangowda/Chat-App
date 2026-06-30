@@ -93,7 +93,6 @@
         </button>
         <div id="header-avatar" class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center font-bold uppercase text-sm border border-teal-500 shadow-inner shrink-0">??</div>
         <div class="min-w-0">
-          <!-- Shows first/last letter code directly -->
           <div id="header-title" class="font-bold text-base uppercase tracking-wider">??</div>
           <div id="header-subtitle" class="text-[11px] text-teal-100 font-light flex items-center truncate">
             <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Secure Link
@@ -101,11 +100,20 @@
         </div>
       </div>
       
-      <button id="btn-signout" class="p-2 active:bg-teal-800 rounded-full transition focus:outline-none" title="Log Out Session">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-      </button>
+      <!-- Action Controls Group Wrapper -->
+      <div class="flex items-center space-x-1.5">
+        <!-- Mobile Native View Port Refresh Trigger Asset -->
+        <button id="btn-refresh" class="p-2 active:bg-teal-800 rounded-full transition focus:outline-none" title="Refresh Feed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7H19" />
+          </svg>
+        </button>
+        <button id="btn-signout" class="p-2 active:bg-teal-800 rounded-full transition focus:outline-none" title="Log Out Session">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- APP CONTENT PANEL ROUTER CONTAINER -->
@@ -178,6 +186,7 @@
     const viewChatroom = document.getElementById('view-chatroom');
     const btnNavBack = document.getElementById('btn-nav-back');
     const btnEnableNotify = document.getElementById('btn-enable-notify');
+    const btnRefresh = document.getElementById('btn-refresh');
     
     const authTitle = document.getElementById('auth-title');
     const authSubtitle = document.getElementById('auth-subtitle');
@@ -204,14 +213,11 @@
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
-      
-      // Removed forced sign out to ensure persistent state across refreshes
       setupAuthObserver();
     } catch(error) {
       console.error(error);
     }
 
-    // Helper to extract first and last character safely
     function getInitialsToken(str) {
       if (!str) return "??";
       const clean = str.trim();
@@ -317,7 +323,6 @@
         return;
       }
 
-      // Convert the pure name or number into a standard backend tracking email format
       const synthesizedEmail = userRawId.includes('@') ? userRawId : `${userRawId}@personalchat.com`;
 
       if(isRegisterMode) {
@@ -326,7 +331,7 @@
           const credentials = await createUserWithEmailAndPassword(auth, synthesizedEmail, password);
           await setDoc(doc(db, "users", credentials.user.uid), {
             uid: credentials.user.uid,
-            username: userRawId, // Preserves name/number string accurately
+            username: userRawId,
             email: synthesizedEmail
           });
         } catch(err) {
@@ -532,6 +537,11 @@
         transmitTypingSignal(false);
       }
     }
+
+    // Refresh action trigger linkage
+    btnRefresh.addEventListener('click', () => {
+      window.location.reload();
+    });
 
     btnSubmitMessage.addEventListener('click', submitChatMessage);
     chatMessageInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitChatMessage(); });
