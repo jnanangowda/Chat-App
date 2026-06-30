@@ -12,14 +12,23 @@ jobs:
       - name: Initialize Node Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Packaging Capacitor Assets
+      - name: Isolate Web Assets and Package App
         run: |
+          # 1. Initialize npm project
           npm init -y
+          
+          # 2. Install core mobile wrapper tools
           npm install @capacitor/core @capacitor/cli @capacitor/android
           npm install cordova-plugin-android-permissions
-          npx cap init "Personal Chat" "com.personalchat.app" --web-dir=.
+          
+          # 3. Create a clean web asset directory to avoid directory bloat crashes
+          mkdir -p www
+          cp index.html www/
+          
+          # 4. Initialize mobile configurations aiming directly at the clean folder
+          npx cap init "Personal Chat" "com.personalchat.app" --web-dir=www
           npx cap add android
           npx cap sync
 
