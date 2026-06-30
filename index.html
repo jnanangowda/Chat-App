@@ -65,7 +65,7 @@
 
           <div>
             <label for="auth-password" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
-            <input type="password" id="auth-password" placeholder="•••••" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none tracking-widest">
+            <input type="password" id="auth-password" placeholder="••••••" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none tracking-widest">
           </div>
 
           <button id="btn-primary-auth" class="w-full bg-whatsapp-teal text-white py-3.5 rounded-xl font-bold text-base hover:bg-whatsapp-light active:scale-[0.99] transition shadow-md">
@@ -442,7 +442,7 @@
       } else {
         const contentText = document.createElement('div');
         contentText.className = "break-words text-gray-800 leading-normal pr-5 pb-1 font-normal text-[15px]";
-        textNode.textContent = data.text;
+        contentText.textContent = data.text;
         bubble.appendChild(contentText);
       }
 
