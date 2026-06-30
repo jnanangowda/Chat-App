@@ -20,22 +20,22 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Package App Assets without Prompts
+      - name: Build Native Mobile Scaffolding
         run: |
-          # 1. Clean workspace to avoid project locks
+          # 1. Clean workspace directory locks
           rm -f package.json package-lock.json capacitor.config.*
           rm -rf android www
           
-          # 2. Build a fresh npm structure
+          # 2. Build standard package manifest
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           npm install cordova-plugin-android-permissions
           
-          # 3. Create a isolated web asset directory
+          # 3. Create isolated compilation folder
           mkdir -p www
           cp index.html www/
           
-          # 4. Generate the config file directly to bypass interactive CLI lockups
+          # 4. Generate native configuration maps
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.personalchat.app",
@@ -44,7 +44,7 @@ jobs:
           }
           EOF
           
-          # 5. Attach native scaffolding and sync assets
+          # 5. Lock native libraries and synchronize asset files
           npx cap add android
           npx cap sync
 
