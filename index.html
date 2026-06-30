@@ -79,7 +79,6 @@
           Disconnect Call
         </button>
       </div>
-      <!-- Video Frame Target Anchor Container Element -->
       <div id="jitsi-call-root" class="flex-1 w-full bg-slate-950"></div>
     </div>
 
@@ -148,7 +147,6 @@
       </div>
       
       <div class="flex items-center space-x-0.5">
-        <!-- VIDEO CALL ACTIVATION KEYHOOK -->
         <button id="btn-launch-call" class="hidden p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition" title="Establish Video Call Stream">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -222,11 +220,11 @@
     </div>
   </div>
 
-  <!-- FIREBASE AUTOMATED ENGINE -->
+  <!-- NATIVE BUNDLED NODE SCRIPTS -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeApp } from "firebase/app";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, onSnapshot, getDocs } from "firebase/firestore";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc",
@@ -316,7 +314,7 @@
       }
     }, { passive: true });
 
-    directoryListView.addEventListener('touched', () => {
+    directoryListView.addEventListener('touchend', () => {
       if (pullActiveDistance >= maxPullCap - 5) {
         ptrIcon.classList.add('animate-spin');
         setTimeout(() => {
@@ -427,7 +425,6 @@
       switchMobileLayoutViewState('directory');
     });
 
-    // INTEGRATED JITSI VIDEO CONFERENCING DRIVER ENGINE 
     btnLaunchCall.addEventListener('click', () => {
       if (!activeChatId || !currentUser) return;
 
@@ -454,7 +451,6 @@
 
       currentJitsiConferenceInstance = new JitsiMeetExternalAPI("meet.jit.si", targetOptions);
 
-      // Listen for local call destruction event strings inside the iframe
       currentJitsiConferenceInstance.addEventListener('videoConferenceLeft', () => {
         terminateActiveVideoCallView();
       });
