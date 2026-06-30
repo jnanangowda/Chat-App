@@ -1,8 +1,20 @@
+Here is the updated, mobile-first codebase. This version transforms the layout into a native app matrix ($100\text{dvh}$ mobile view) that scales, handles on-screen mobile keyboard shifts gracefully, and changes how user authentication persists.
+
+### Mobile-First Fixes Applied
+
+* **Dynamic Full Viewport Bounds (`h-[100dvh]`):** Replaced static height markers with dynamic view metrics so the app fits mobile screens and doesn't cut off when the mobile soft-keyboard slides up.
+* **Forced Login on Every Refresh:** Added an automatic session truncation statement right at script boot. Every single time the web app is loaded or refreshed, it forces a clean logout, requiring users to input their credentials.
+* **Zero Overlay Message Bubbles:** Built the message bubbles using a vertical flex-stack wrapper layout. The text content and the time metadata sit in distinct block layers, making it structurally impossible for text to overlay or collide.
+* **Native Touch-Targets:** Buttons, inputs, and list rows feature extended click regions matching iOS/Android design rules.
+
+Replace your entire `index.html` file on GitHub with this code:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Mobile Personal Chat</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,116 +37,121 @@
     }
   </script>
   <style>
-    /* Mobile app structural behaviors */
     body, html {
+      height: 100%;
+      height: -webkit-fill-available;
+      max-height: 100dvh;
       overflow: hidden;
       position: fixed;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
     }
-    .safe-scroll {
-      -webkit-overflow-scrolling: touch;
+    .safe-view-height {
+      height: 100vh;
+      height: 100dvh;
     }
   </style>
 </head>
-<body class="bg-gray-900 font-sans h-screen w-screen flex flex-col antialiased select-none">
+<body class="bg-gray-100 font-sans text-gray-900 antialiased select-none">
 
-  <!-- AUTH LAYER (HANDLES CUSTOM EMAIL & PASSWORD CREATION) -->
-  <div id="auth-screen" class="absolute inset-0 bg-gray-50 z-50 flex flex-col justify-center px-6">
-    <div class="max-w-md w-full mx-auto bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
-      <div class="flex flex-col items-center text-center space-y-2 mb-6">
-        <div class="w-14 h-14 bg-whatsapp-teal rounded-full flex items-center justify-center text-white shadow-md">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        </div>
-        <h1 id="auth-title" class="text-2xl font-bold text-gray-800">Create Account</h1>
-        <p id="auth-subtitle" class="text-xs text-gray-500">Enter a unique email identifier and secure system password.</p>
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label for="auth-email" class="block text-xs font-semibold text-gray-600 uppercase mb-1 tracking-wide">Email Address</label>
-          <input type="email" id="auth-email" placeholder="username@test.com" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 outline-none focus:ring-1 focus:ring-whatsapp-teal transition" autocomplete="off">
+  <!-- MASTER VIEW CONTAINER -->
+  <div class="safe-view-height w-full flex flex-col relative bg-white overflow-hidden">
+    
+    <!-- AUTH SCREEN PORTAL LAYER -->
+    <div id="screen-auth" class="absolute inset-0 bg-gray-50 z-50 flex flex-col justify-between p-6 overflow-y-auto">
+      <div class="my-auto max-w-sm w-full mx-auto bg-white p-6 rounded-2xl shadow-xl border border-gray-200/60 space-y-6">
+        <div class="flex flex-col items-center text-center space-y-2">
+          <div class="w-16 h-16 bg-whatsapp-teal rounded-full flex items-center justify-center text-white shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 id="auth-title" class="text-2xl font-bold text-gray-800">Account Sign In</h1>
+          <p id="auth-subtitle" class="text-xs text-gray-400">Please authenticate with your email and system password.</p>
         </div>
 
-        <div>
-          <label for="auth-password" class="block text-xs font-semibold text-gray-600 uppercase mb-1 tracking-wide">Password</label>
-          <input type="password" id="auth-password" placeholder="••••••" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 outline-none focus:ring-1 focus:ring-whatsapp-teal transition tracking-widest">
+        <div class="space-y-4">
+          <div>
+            <label for="auth-email" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Email Address</label>
+            <input type="email" id="auth-email" placeholder="name@domain.com" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none">
+          </div>
+
+          <div>
+            <label for="auth-password" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
+            <input type="password" id="auth-password" placeholder="••••••" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none tracking-widest">
+          </div>
+
+          <button id="btn-primary-auth" class="w-full bg-whatsapp-teal text-white py-3.5 rounded-xl font-bold text-base hover:bg-whatsapp-light active:scale-[0.99] transition shadow-md">
+            Sign In Securely
+          </button>
+
+          <p class="text-center text-xs text-gray-500 pt-2">
+            <span id="auth-toggle-text">Don't have an account?</span>
+            <button id="btn-toggle-auth-mode" class="text-whatsapp-teal font-bold underline ml-1">Register space</button>
+          </p>
+
+          <div id="auth-status-msg" class="text-xs font-semibold text-center text-red-500 min-h-[16px]"></div>
         </div>
-
-        <button id="btn-primary-auth" class="w-full bg-whatsapp-teal text-white py-3 rounded-xl font-semibold text-sm hover:bg-whatsapp-light shadow-md transition tracking-wide">
-          Register Space
-        </button>
-
-        <p class="text-center text-xs text-gray-500 pt-2">
-          <span id="auth-toggle-text">Already have an account?</span>
-          <button id="btn-toggle-auth-mode" class="text-whatsapp-teal font-bold hover:underline ml-1">Log In here</button>
-        </p>
-
-        <div id="auth-status-msg" class="text-xs font-medium text-center text-red-600 min-h-[16px]"></div>
       </div>
     </div>
-  </div>
 
-  <!-- MAIN APP WINDOW VIEW CONTAINER (MOBILE APP RATIO LOOK AND FEEL) -->
-  <div id="app-workspace" class="hidden w-full h-full bg-white flex flex-col relative overflow-hidden">
-    
-    <!-- HEADER BAR PANEL (TOP DECK) -->
-    <div class="h-16 bg-whatsapp-teal text-white flex items-center justify-between px-4 shadow-md z-30 shrink-0">
-      <div class="flex items-center space-x-3 min-w-0">
-        <!-- Back Navigation Button Asset (Visible only inside sub-chat windows) -->
-        <button id="btn-view-back" class="hidden p-1.5 hover:bg-teal-800 rounded-full transition focus:outline-none">
+    <!-- APP NAVIGATION BAR HEADER -->
+    <div id="app-header" class="hidden h-16 bg-whatsapp-teal text-white flex items-center justify-between px-4 shadow-md z-40 shrink-0 select-none">
+      <div class="flex items-center space-x-2.5 min-w-0">
+        <!-- Back Navigation Arrow Asset -->
+        <button id="btn-nav-back" class="hidden p-2 active:bg-teal-800 rounded-full transition focus:outline-none -ml-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div id="main-avatar-display" class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center font-bold uppercase text-sm border border-teal-500 shadow-inner">CH</div>
+        <div id="header-avatar" class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center font-bold uppercase text-sm border border-teal-500 shadow-inner shrink-0">??</div>
         <div class="min-w-0">
-          <div id="main-title-display" class="font-bold text-sm truncate">Personal Chat App</div>
-          <div id="main-subtitle-display" class="text-[10px] text-teal-100 font-light truncate">Secure Network Pipeline</div>
+          <div id="header-title" class="font-bold text-base truncate">Personal Chat</div>
+          <div id="header-subtitle" class="text-[11px] text-teal-100 font-light flex items-center truncate">
+            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Secure Network
+          </div>
         </div>
       </div>
       
-      <!-- Session Disconnect Signout Button Trigger -->
-      <button id="btn-logout" class="p-2 hover:bg-teal-800 rounded-full transition focus:outline-none" title="Log Out Account">
+      <button id="btn-signout" class="p-2 active:bg-teal-800 rounded-full transition focus:outline-none" title="Log Out Session">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
       </button>
     </div>
 
-    <!-- MAIN BODY DISPLAY SWITCHBOARD CANVAS -->
-    <div class="flex-1 w-full h-full relative overflow-hidden bg-white">
+    <!-- APP CONTENT PANEL ROUTER CONTAINER -->
+    <div class="flex-1 w-full relative overflow-hidden bg-white">
       
-      <!-- VIEW INDEX A: USER HUB DIRECTORY DIRECTORY PANEL -->
-      <div id="panel-directory" class="absolute inset-0 flex flex-col bg-white z-10 transition-transform duration-300 transform translate-x-0">
-        <div class="p-3 bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 flex justify-between items-center">
-          <span>Active Users Contacts</span>
-          <span id="btn-request-notify" class="text-whatsapp-teal normal-case cursor-pointer font-semibold underline hover:text-whatsapp-light">Enable Notifications</span>
+      <!-- SCREEN 1: USER HUB DIRECTORY DIRECTORY -->
+      <div id="view-directory" class="absolute inset-0 flex flex-col bg-white z-20 transition-transform duration-300 transform translate-x-0">
+        <div class="p-3 bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200/60 flex justify-between items-center shrink-0">
+          <span>Active Contact Channels</span>
+          <button id="btn-enable-notify" class="text-whatsapp-teal font-bold underline capitalize focus:outline-none">Enable Alerts</button>
         </div>
-        <div id="users-directory-list" class="flex-1 overflow-y-auto safe-scroll divide-y divide-gray-100">
-          <!-- Dynamic available profile nodes stream here -->
+        <div id="directory-list-view" class="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <!-- Dynamic contact list feeds inject here -->
         </div>
       </div>
 
-      <!-- VIEW INDEX B: DEDICATED CONVERSATION CHAT WINDOW PANEL -->
-      <div id="panel-chat" class="absolute inset-0 flex flex-col bg-whatsapp-bg z-20 transition-transform duration-300 transform translate-x-full">
-        <!-- Message History Scroller Feed -->
-        <div id="message-container" class="flex-1 p-4 overflow-y-auto safe-scroll space-y-2 flex flex-col"></div>
+      <!-- SCREEN 2: ACTIVE 1-ON-1 CHAT LAYOUT WINDOW -->
+      <div id="view-chatroom" class="absolute inset-0 flex flex-col bg-whatsapp-bg z-30 transition-transform duration-300 transform translate-x-full">
+        <!-- Message Feed Stream Box -->
+        <div id="message-stream-scroller" class="flex-1 p-4 overflow-y-auto space-y-2.5 flex flex-col"></div>
 
-        <!-- Hidden photo loader node asset pipeline mapping -->
-        <input type="file" id="photo-input" accept="image/*" class="hidden">
+        <!-- System Image Input File Collector -->
+        <input type="file" id="media-attachment-picker" accept="image/*" class="hidden">
 
-        <!-- Mobile Action Dock Messaging Box Footer Container -->
-        <div class="p-3 bg-whatsapp-gray flex items-center space-x-2 border-t border-gray-200 shrink-0">
-          <button id="btn-trigger-photo" class="text-gray-500 hover:text-whatsapp-teal p-2 rounded-full hover:bg-gray-200 transition focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <!-- Mobile Action Input Footer Bar Deck -->
+        <div class="p-2.5 bg-whatsapp-gray flex items-center space-x-2 border-t border-gray-200 shrink-0 pb-[calc(10px+env(safe-area-inset-bottom))]">
+          <button id="btn-trigger-media" class="text-gray-500 hover:text-whatsapp-teal active:scale-95 p-2 rounded-full active:bg-gray-200 transition focus:outline-none shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </button>
-          <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-white px-4 py-2 text-sm rounded-full outline-none border border-gray-200 focus:ring-1 focus:ring-whatsapp-teal" autocomplete="off">
-          <button id="btn-send" class="bg-whatsapp-teal text-white p-2.5 rounded-full hover:bg-whatsapp-light transition shadow shrink-0">
+          
+          <input type="text" id="chat-message-input" placeholder="Type a message..." class="flex-1 bg-white px-4 py-3 text-base rounded-full outline-none border border-gray-300 focus:ring-1 focus:ring-whatsapp-teal transition appearance-none" autocomplete="off">
+          
+          <button id="btn-submit-message" class="bg-whatsapp-teal text-white p-3 rounded-full active:scale-95 transition shadow-md shrink-0 focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -161,22 +178,18 @@
     };
 
     let app, auth, db;
-    let currentUser = null;
-    let selectedPartner = null;
-    let activeChatId = null;
-    let typingTimeout = null;
-    let unsubscribeMessages = null;
-    let unsubscribeChatDoc = null;
+    let currentUser = null, selectedPartner = null, activeChatId = null;
+    let typingTimeout = null, unsubscribeMessages = null, unsubscribeChatDoc = null;
     
-    let isRegisterMode = true;
+    let isRegisterMode = false; // Default presentation layout set to sign-in
 
-    // DOM Bindings
-    const authScreen = document.getElementById('auth-screen');
-    const appWorkspace = document.getElementById('app-workspace');
-    const panelDirectory = document.getElementById('panel-directory');
-    const panelChat = document.getElementById('panel-chat');
-    const btnViewBack = document.getElementById('btn-view-back');
-    const btnRequestNotify = document.getElementById('btn-request-notify');
+    // UI Document Target Traces
+    const screenAuth = document.getElementById('screen-auth');
+    const appHeader = document.getElementById('app-header');
+    const viewDirectory = document.getElementById('view-directory');
+    const viewChatroom = document.getElementById('view-chatroom');
+    const btnNavBack = document.getElementById('btn-nav-back');
+    const btnEnableNotify = document.getElementById('btn-enable-notify');
     
     const authTitle = document.getElementById('auth-title');
     const authSubtitle = document.getElementById('auth-subtitle');
@@ -187,49 +200,50 @@
     const btnToggleAuthMode = document.getElementById('btn-toggle-auth-mode');
     const authStatusMsg = document.getElementById('auth-status-msg');
     
-    const mainAvatarDisplay = document.getElementById('main-avatar-display');
-    const mainTitleDisplay = document.getElementById('main-title-display');
-    const mainSubtitleDisplay = document.getElementById('main-subtitle-display');
-    const usersDirectoryList = document.getElementById('users-directory-list');
+    const headerAvatar = document.getElementById('header-avatar');
+    const headerTitle = document.getElementById('header-title');
+    const headerSubtitle = document.getElementById('header-subtitle');
+    const directoryListView = document.getElementById('directory-list-view');
     
-    const messageContainer = document.getElementById('message-container');
-    const chatInput = document.getElementById('chat-input');
-    const photoInput = document.getElementById('photo-input');
-    const btnTriggerPhoto = document.getElementById('btn-trigger-photo');
-    const btnSend = document.getElementById('btn-send');
-    const btnLogout = document.getElementById('btn-logout');
+    const messageStreamScroller = document.getElementById('message-stream-scroller');
+    const chatMessageInput = document.getElementById('chat-message-input');
+    const mediaAttachmentPicker = document.getElementById('media-attachment-picker');
+    const btnTriggerMedia = document.getElementById('btn-trigger-media');
+    const btnSubmitMessage = document.getElementById('btn-submit-message');
+    const btnSignout = document.getElementById('btn-signout');
 
+    // INITIALIZE FIREBASE & FORCE SECURITY DISCONNECT ON REFRESH
     try {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
-      setupAuthObserver();
+      
+      // Every time page refreshes, clear session storage cache data
+      signOut(auth).then(() => { setupAuthObserver(); });
     } catch(error) {
-      console.error(error);
+      console.error("System Boot Core Engine Fault Trace: ", error);
     }
 
     function setupAuthObserver() {
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           currentUser = user;
-          
-          // Force login requirements - verify database mappings handle instances cleanly
           const userDoc = await getDoc(doc(db, "users", user.uid));
           currentUser.username = userDoc.exists() ? userDoc.data().username : user.email.split('@')[0];
 
-          authScreen.classList.add('hidden');
-          appWorkspace.classList.remove('hidden');
+          screenAuth.classList.add('hidden');
+          appHeader.classList.remove('hidden');
           
-          displayUINavigationState('directory');
-          loadUsersDirectory();
+          switchMobileLayoutViewState('directory');
+          loadUserSpaceDirectory();
         } else {
           teardownActiveRoomListeners();
           currentUser = null;
           selectedPartner = null;
           activeChatId = null;
           
-          appWorkspace.classList.add('hidden');
-          authScreen.classList.remove('hidden');
+          appHeader.classList.add('hidden');
+          screenAuth.classList.remove('hidden');
           
           authEmailInput.value = "";
           authPasswordInput.value = "";
@@ -238,65 +252,65 @@
       });
     }
 
-    // REQUEST NATIVE RUNTIME SYSTEM NOTIFICATIONS PERMISSIONS
-    if(Notification.permission === "granted") btnRequestNotify.classList.add('hidden');
-    btnRequestNotify.addEventListener('click', () => {
+    // WEB WORKER PUSH NOTIFICATIONS HANDLERS
+    if(Notification.permission === "granted") btnEnableNotify.classList.add('hidden');
+    btnEnableNotify.addEventListener('click', () => {
       Notification.requestPermission().then(perm => {
-        if(perm === "granted") btnRequestNotify.classList.add('hidden');
+        if(perm === "granted") btnEnableNotify.classList.add('hidden');
       });
     });
 
-    function dispatchNativeNotification(senderName, textBody) {
+    function dispatchLocalAppNotification(sender, body) {
       if(Notification.permission === "granted" && document.hidden) {
-        new Notification(senderName, {
-          body: textBody,
+        new Notification(sender, {
+          body: body,
           icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968841.png'
         });
       }
     }
 
-    // SLIDING SYSTEM UI VIEW STATE CONTROLLERS
-    function displayUINavigationState(viewTarget) {
-      if (viewTarget === 'chat') {
-        btnViewBack.classList.remove('hidden');
-        panelDirectory.classList.add('-translate-x-full');
-        panelChat.classList.remove('translate-x-full');
+    // MOBILE ADAPTIVE COMPACT PANELS ROUTER SWITCH
+    function switchMobileLayoutViewState(targetState) {
+      if (targetState === 'chat') {
+        btnNavBack.classList.remove('hidden');
+        viewDirectory.classList.add('-translate-x-full');
+        viewChatroom.classList.remove('translate-x-full');
         
-        mainAvatarDisplay.textContent = selectedPartner.username.substring(0,2).toUpperCase();
-        mainTitleDisplay.textContent = selectedPartner.username;
-        mainSubtitleDisplay.textContent = "Online";
+        headerAvatar.textContent = selectedPartner.username.substring(0,2).toUpperCase();
+        headerTitle.textContent = selectedPartner.username;
+        headerSubtitle.textContent = "Online";
       } else {
-        btnViewBack.classList.add('hidden');
-        panelDirectory.classList.remove('-translate-x-full');
-        panelChat.classList.add('translate-x-full');
+        btnNavBack.classList.add('hidden');
+        viewDirectory.classList.remove('-translate-x-full');
+        viewChatroom.classList.add('translate-x-full');
         
-        mainAvatarDisplay.textContent = currentUser.username.substring(0,2).toUpperCase();
-        mainTitleDisplay.textContent = currentUser.username;
-        mainSubtitleDisplay.textContent = "My Personal Workspace";
+        headerAvatar.textContent = currentUser.username.substring(0,2).toUpperCase();
+        headerTitle.textContent = currentUser.username;
+        headerSubtitle.innerHTML = `<span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Space Online`;
       }
     }
 
-    btnViewBack.addEventListener('click', () => {
+    btnNavBack.addEventListener('click', () => {
       teardownActiveRoomListeners();
-      displayUINavigationState('directory');
+      switchMobileLayoutViewState('directory');
     });
 
-    // AUTH LAYER SWITCH SWITCH ROUTERS
+    // INTERCHANGEABLE IDENTITY PANEL CHANNELS TOGGLE
     btnToggleAuthMode.addEventListener('click', () => {
       isRegisterMode = !isRegisterMode;
       authStatusMsg.textContent = "";
       if(isRegisterMode) {
         authTitle.textContent = "Create Account";
         authSubtitle.textContent = "Register once to access the encrypted chat system hub.";
-        btnPrimaryAuth.textContent = "Register Space";
+        btnPrimaryAuth.textContent = "Register Account";
         authToggleText.textContent = "Already have an account?";
         btnToggleAuthMode.textContent = "Log In here";
       } else {
-        authTitle.textContent = "Verify Identity";
-        authSubtitle.textContent = "Provide registered email credentials to reload conversation space.";
-        btnPrimaryAuth.textContent = "Authenticate Login";
-        authToggleText.textContent = "Need a chat workspace?";
-        btnToggleAuthMode.textContent = "Register here";
+        authTitle.textContent = "Account Sign In";
+        authSubtitle.textContent = "Please authenticate with your email and system password.";
+        btnPrimaryAuth.textContent = "Sign In Securely";
+        authToggleText.textContent = "Don't have an account?";
+        btnToggleAuthMode.textContent = "Register space";
       }
     });
 
@@ -305,67 +319,67 @@
       const password = authPasswordInput.value.trim();
 
       if (!email || !password) {
-        authStatusMsg.textContent = "All credential inputs required.";
+        authStatusMsg.textContent = "All input fields are required.";
         return;
       }
 
       if(isRegisterMode) {
-        authStatusMsg.textContent = "Configuring system user profile node...";
+        authStatusMsg.textContent = "Creating profile space...";
         try {
-          const uToken = await createUserWithEmailAndPassword(auth, email, password);
-          const computedUsername = email.split('@')[0];
-          await setDoc(doc(db, "users", uToken.user.uid), {
-            uid: uToken.user.uid,
-            username: computedUsername,
+          const credentials = await createUserWithEmailAndPassword(auth, email, password);
+          const calculatedName = email.split('@')[0];
+          await setDoc(doc(db, "users", credentials.user.uid), {
+            uid: credentials.user.uid,
+            username: calculatedName,
             email: email
           });
         } catch(err) {
-          authStatusMsg.textContent = "Initialization Fault: " + err.message;
+          authStatusMsg.textContent = "Error: " + err.message;
         }
       } else {
-        authStatusMsg.textContent = "Authorizing credentials access...";
+        authStatusMsg.textContent = "Verifying signatures...";
         try {
           await signInWithEmailAndPassword(auth, email, password);
         } catch(err) {
-          authStatusMsg.textContent = "Invalid credential tracking matching signatures.";
+          authStatusMsg.textContent = "Access Denied: Invalid credentials.";
         }
       }
     });
 
-    async function loadUsersDirectory() {
+    async function loadUserSpaceDirectory() {
       if(!db || !currentUser) return;
       try {
         const snap = await getDocs(collection(db, "users"));
-        usersDirectoryList.innerHTML = "";
+        directoryListView.innerHTML = "";
         
         snap.forEach((userDoc) => {
           const uData = userDoc.data();
           if(uData.uid === currentUser.uid) return;
 
-          const card = document.createElement('button');
-          card.className = "w-full text-left p-4 flex items-center space-x-3 active:bg-gray-100 transition focus:outline-none";
-          card.innerHTML = `
-            <div class="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center font-bold uppercase shadow-sm text-sm">${uData.username.substring(0,2)}</div>
+          const cardButton = document.createElement('button');
+          cardButton.className = "w-full text-left p-4 flex items-center space-x-3 active:bg-gray-100 transition border-b border-gray-50 focus:outline-none";
+          cardButton.innerHTML = `
+            <div class="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center font-bold uppercase text-sm shadow-inner">${uData.username.substring(0,2)}</div>
             <div class="flex-1 min-w-0">
-              <div class="font-bold text-gray-800 text-sm truncate">${uData.username}</div>
-              <p class="text-[11px] text-gray-400 truncate">Tap to launch secure local thread link</p>
+              <div class="font-bold text-gray-800 text-base truncate">${uData.username}</div>
+              <p class="text-xs text-gray-400 truncate">Tap to launch chat thread link</p>
             </div>
           `;
           
-          card.addEventListener('click', () => {
+          cardButton.addEventListener('click', () => {
             selectedPartner = uData;
-            const sequence = [currentUser.uid, selectedPartner.uid].sort();
-            activeChatId = `${sequence[0]}_${sequence[1]}`;
+            const sortedSequence = [currentUser.uid, selectedPartner.uid].sort();
+            activeChatId = `${sortedSequence[0]}_${sortedSequence[1]}`;
             
-            displayUINavigationState('chat');
-            setupActiveConversationChannel();
+            switchMobileLayoutViewState('chat');
+            openDynamicMessagePipeline();
           });
-          usersDirectoryList.appendChild(card);
+          directoryListView.appendChild(cardButton);
         });
       } catch(e) { console.error(e); }
     }
 
-    async function setupActiveConversationChannel() {
+    async function openDynamicMessagePipeline() {
       if(!db || !activeChatId) return;
       
       const docRef = doc(db, "chats", activeChatId);
@@ -377,24 +391,22 @@
         }, { merge: true });
       }
 
-      // Stream room meta profiles structures (typing notifications hooks)
       unsubscribeChatDoc = onSnapshot(docRef, (snap) => {
         if(snap.exists()) {
           const data = snap.data();
-          const isTyping = data?.typing?.[selectedPartner.uid] === true;
-          mainSubtitleDisplay.textContent = isTyping ? "typing..." : "Online";
-          mainSubtitleDisplay.className = isTyping ? "text-[10px] text-emerald-200 animate-pulse font-medium" : "text-[10px] text-teal-100 font-light";
+          const partnerTyping = data?.typing?.[selectedPartner.uid] === true;
+          headerSubtitle.textContent = partnerTyping ? "typing..." : "Online";
+          headerSubtitle.className = partnerTyping ? "text-[11px] text-emerald-200 font-bold animate-pulse" : "text-[11px] text-teal-100 font-light";
         }
       });
 
-      // Stream messages mapping engine boundaries pipelines tracking limits
-      const msgsRef = collection(db, "chats", activeChatId, "messages");
-      const q = query(msgsRef, where("expireAt", ">", new Date()), orderBy("expireAt", "asc"));
+      const messagesRef = collection(db, "chats", activeChatId, "messages");
+      const q = query(messagesRef, where("expireAt", ">", new Date()), orderBy("expireAt", "asc"));
 
-      let initialLoadComplete = false;
+      let pipelinePreheated = false;
       unsubscribeMessages = onSnapshot(q, (snap) => {
-        messageContainer.innerHTML = "";
-        const unreadRefs = [];
+        messageStreamScroller.innerHTML = "";
+        const receiptsBatch = [];
 
         snap.forEach((msgDoc) => {
           const data = msgDoc.data();
@@ -402,89 +414,98 @@
           const isMe = data.senderId === currentUser.uid;
 
           if(!isMe && data.status !== 'read') {
-            unreadRefs.push(doc(db, "chats", activeChatId, "messages", msgDoc.id));
-            // Trigger device notification only on new incoming messages
-            if (initialLoadComplete) {
-              dispatchNativeNotification(selectedPartner.username, data.type === 'image' ? '📷 Shared a photo' : data.text);
+            receiptsBatch.push(doc(db, "chats", activeChatId, "messages", msgDoc.id));
+            if (pipelinePreheated) {
+              dispatchLocalAppNotification(selectedPartner.username, data.type === 'image' ? '📷 Shared a photo' : data.text);
             }
           }
-          renderMobileMessageBubble(data, isMe);
+          renderMobileMessageBubbleCard(data, isMe);
         });
 
-        initialLoadComplete = true;
+        pipelinePreheated = true;
 
-        unreadRefs.forEach((ref) => {
+        receiptsBatch.forEach((ref) => {
           updateDoc(ref, { status: 'read' }).catch(e => console.error(e));
         });
-        messageContainer.scrollTop = messageContainer.scrollHeight;
+        messageStreamScroller.scrollTop = messageStreamScroller.scrollHeight;
       });
     }
 
-    function renderMobileMessageBubble(data, isMe) {
+    // COMPLETELY WIPE OVERLAPPING: Vertical block flow implementation
+    function renderMobileMessageBubbleCard(data, isMe) {
       const wrapper = document.createElement('div');
-      wrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} mb-1 group`;
+      wrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} mb-1.5 group`;
 
       const bubble = document.createElement('div');
-      bubble.className = `max-w-[80%] rounded-2xl px-3 py-1.5 shadow-sm text-[14px] flex flex-col relative ${
+      // Added block formatting padding boundaries tracking structural specifications
+      bubble.className = `max-w-[82%] rounded-2xl px-3 py-2 shadow-sm text-[15px] flex flex-col relative ${
         isMe ? 'bg-whatsapp-out text-gray-900 rounded-tr-none' : 'bg-whatsapp-in text-gray-900 rounded-tl-none'
       }`;
 
       if(isMe) {
-        const del = document.createElement('button');
-        del.className = "absolute top-1 right-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition duration-150 p-1 bg-white/90 rounded-full shadow-sm z-40";
-        del.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v4M4 7h16" /></svg>`;
-        del.addEventListener('click', () => {
-          if(confirm("Permanently erase this trace item document?")) {
+        const deleteButton = document.createElement('button');
+        deleteButton.className = "absolute top-1 right-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1 bg-white/90 rounded-full shadow-sm z-40";
+        deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v4M4 7h16" /></svg>`;
+        deleteButton.addEventListener('click', () => {
+          if(confirm("Permanently delete this message?")) {
             deleteDoc(doc(db, "chats", activeChatId, "messages", data.id));
           }
         });
-        bubble.appendChild(del);
+        bubble.appendChild(deleteButton);
       }
 
       if(data.type === 'image') {
         const img = document.createElement('img');
         img.src = data.text;
-        img.className = "rounded-xl max-w-full object-cover max-h-52 mb-2 shadow-inner border border-black/5 pointer-events-none";
+        img.className = "rounded-xl max-w-full object-cover max-h-56 mb-1 shadow-inner border border-black/5 pointer-events-none select-none";
         bubble.appendChild(img);
       } else {
-        const text = document.createElement('div');
-        text.className = "break-words text-gray-800 leading-normal pb-3.5 pr-5 font-normal";
-        text.textContent = data.text;
-        bubble.appendChild(text);
+        const contentText = document.createElement('div');
+        // Extended right padding margins ensures character blocks never collide with absolute position checkmarks
+        contentText.className = "break-words text-gray-800 leading-normal pr-5 pb-1 font-normal text-[15px]";
+        contentText.textContent = data.text;
+        bubble.appendChild(contentText);
       }
 
-      const meta = document.createElement('div');
-      meta.className = "absolute bottom-1 right-2 flex items-center space-x-1 text-[9px] text-gray-400 select-none h-3 pointer-events-none";
-      const d = data.createdAt ? new Date(data.createdAt) : new Date();
-      meta.innerHTML = `<span>${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
+      // Metadata Row Footer (Structured cleanly under the flow)
+      const metaRow = document.createElement('div');
+      metaRow.className = "flex items-center justify-end space-x-1 text-[9px] text-gray-400 select-none mt-0.5 self-end h-3";
+      
+      const timeStamp = data.createdAt ? new Date(data.createdAt) : new Date();
+      const timeSpan = document.createElement('span');
+      timeSpan.textContent = timeStamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      metaRow.appendChild(timeSpan);
       
       if(isMe) {
-        meta.innerHTML += data.status === 'read' ? 
-          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.267 3.455a.75.75 0 00-.708.522L3.547 11.22a.75.75 0 101.446.4l1.372-4.954 8.214 8.214a.75.75 0 001.06-1.06L6.267 3.455z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>` :
-          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>`;
+        const checkmarks = document.createElement('span');
+        checkmarks.className = "flex items-center";
+        checkmarks.innerHTML = data.status === 'read' ? 
+          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.267 3.455a.75.75 0 00-.708.522L3.547 11.22a.75.75 0 101.446.4l1.372-4.954 8.214 8.214a.75.75 0 001.06-1.06L6.267 3.455z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>` :
+          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>`;
+        metaRow.appendChild(checkmarks);
       }
 
-      bubble.appendChild(meta);
+      bubble.appendChild(metaRow);
       wrapper.appendChild(bubble);
-      messageContainer.appendChild(wrapper);
+      messageStreamScroller.appendChild(wrapper);
     }
 
-    async function dispatchMessagePayload(bodyText, type = 'text') {
-      if(!bodyText || !db || !activeChatId) return;
+    async function dispatchMessagePayload(textBody, type = 'text') {
+      if(!textBody || !db || !activeChatId) return;
       const ref = collection(db, "chats", activeChatId, "messages");
-      const time = new Date();
+      const timeNow = new Date();
       await addDoc(ref, {
-        text: bodyText,
+        text: textBody,
         type: type,
         senderId: currentUser.uid,
-        createdAt: time.toISOString(),
-        expireAt: new Date(time.getTime() + (24 * 60 * 60 * 1000)), // 24-hour retention
+        createdAt: timeNow.toISOString(),
+        expireAt: new Date(timeNow.getTime() + (24 * 60 * 60 * 1000)),
         status: 'sent'
       });
     }
 
-    btnTriggerPhoto.addEventListener('click', () => photoInput.click());
-    photoInput.addEventListener('change', (e) => {
+    btnTriggerMedia.addEventListener('click', () => mediaAttachmentPicker.click());
+    mediaAttachmentPicker.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if(!file) return;
       const reader = new FileReader();
@@ -492,34 +513,34 @@
         await dispatchMessagePayload(ev.target.result, 'image');
       };
       reader.readAsDataURL(file);
-      photoInput.value = "";
+      mediaAttachmentPicker.value = "";
     });
 
-    function updateTypingSignal(isTyping) {
+    function transmitTypingSignal(isTyping) {
       if(!db || !activeChatId || !currentUser) return;
       updateDoc(doc(db, "chats", activeChatId), { [`typing.${currentUser.uid}`]: isTyping }).catch(() => {});
     }
 
-    chatInput.addEventListener('input', () => {
-      updateTypingSignal(true);
+    chatMessageInput.addEventListener('input', () => {
+      transmitTypingSignal(true);
       if(typingTimeout) clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => { updateTypingSignal(false); }, 2000);
+      typingTimeout = setTimeout(() => { transmitTypingSignal(false); }, 2000);
     });
 
-    chatInput.addEventListener('blur', () => { updateTypingSignal(false); });
+    chatMessageInput.addEventListener('blur', () => { transmitTypingSignal(false); });
 
-    function submitText() {
-      const val = chatInput.value.trim();
-      if(val) {
-        dispatchMessagePayload(val, 'text');
-        chatInput.value = "";
-        updateTypingSignal(false);
+    function submitChatMessage() {
+      const messageText = chatMessageInput.value.trim();
+      if(messageText) {
+        dispatchMessagePayload(messageText, 'text');
+        chatMessageInput.value = "";
+        transmitTypingSignal(false);
       }
     }
 
-    btnSend.addEventListener('click', submitText);
-    chatInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitText(); });
-    btnLogout.addEventListener('click', () => { if(auth) signOut(auth); });
+    btnSubmitMessage.addEventListener('click', submitChatMessage);
+    chatMessageInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitChatMessage(); });
+    btnSignout.addEventListener('click', () => { if(auth) signOut(auth); });
 
     function teardownActiveRoomListeners() {
       if(unsubscribeMessages) unsubscribeMessages();
@@ -528,3 +549,5 @@
   </script>
 </body>
 </html>
+
+```
