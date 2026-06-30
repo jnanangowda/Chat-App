@@ -45,7 +45,6 @@
       height: 100vh;
       height: 100dvh;
     }
-    /* Smooth native feel scrolling hide scrollbars */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -56,6 +55,11 @@
     input, button {
       -webkit-tap-highlight-color: transparent;
     }
+    /* Smooth bounce transition for custom refresh drawer */
+    #ptr-indicator {
+      transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+      will-change: transform, opacity;
+    }
   </style>
 </head>
 <body class="font-sans antialiased select-none text-app-textMain">
@@ -63,11 +67,20 @@
   <!-- MASTER APP CONTAINER -->
   <div id="master-container" class="safe-view-height w-full flex flex-col relative bg-white overflow-hidden max-w-md mx-auto md:shadow-2xl">
     
+    <!-- DYNAMIC PULL TO REFRESH POPUP INDICATOR -->
+    <div id="ptr-indicator" class="absolute top-20 left-0 right-0 flex justify-center items-center z-50 pointer-events-none opacity-0 scale-75 transform -translate-y-4">
+      <div class="bg-white text-app-accent p-2.5 rounded-full shadow-lg border border-slate-100 flex items-center justify-center">
+        <svg id="ptr-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7H19" />
+        </svg>
+      </div>
+    </div>
+
     <!-- AUTH SCREEN LAYER -->
     <div id="screen-auth" class="absolute inset-0 bg-slate-50 z-50 flex flex-col justify-center p-8 overflow-y-auto">
       <div class="w-full space-y-8">
         <div class="flex flex-col items-center text-center space-y-3">
-          <div class="w-20 h-20 bg-app-primary rounded-3xl flex items-center justify-center text-white shadow-xl transform rotate-12 transition-transform hover:rotate-0 duration-300">
+          <div class="w-20 h-20 bg-app-primary rounded-3xl flex items-center justify-center text-white shadow-xl transform rotate-12">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
@@ -245,6 +258,55 @@
     const replyPreviewBar = document.getElementById('reply-preview-bar');
     const replyPreviewText = document.getElementById('reply-preview-text');
     const btnCancelReply = document.getElementById('btn-cancel-reply');
+
+    // NATIVE-FEEL TOUCH-GESTURE PULL TO REFRESH DRIVER
+    const ptrIndicator = document.getElementById('ptr-indicator');
+    const ptrIcon = document.getElementById('ptr-icon');
+    let touchStartOffsetY = 0;
+    let pullActiveDistance = 0;
+    const maxPullCap = 75; 
+
+    directoryListView.addEventListener('touchstart', (e) => {
+      // Trigger execution only if the scroll view container is pinned exactly at the top boundary
+      if (directoryListView.scrollTop === 0 && activeViewportState === 'directory') {
+        touchStartOffsetY = e.touches[0].clientY;
+      } else {
+        touchStartOffsetY = 0;
+      }
+    }, { passive: true });
+
+    directoryListView.addEventListener('touchmove', (e) => {
+      if (touchStartOffsetY === 0) return;
+      
+      const currentMoveY = e.touches[0].clientY;
+      const computedDelta = currentMoveY - touchStartOffsetY;
+
+      if (computedDelta > 0) {
+        // Apply micro resistance factor calculation to simulate physics weight
+        pullActiveDistance = Math.min(computedDelta * 0.4, maxPullCap);
+        
+        ptrIndicator.style.opacity = `${pullActiveDistance / maxPullCap}`;
+        ptrIndicator.style.transform = `translateY(${pullActiveDistance}px) scale(${0.75 + (pullActiveDistance / maxPullCap) * 0.25})`;
+        ptrIcon.style.transform = `rotate(${pullActiveDistance * 4}deg)`;
+      }
+    }, { passive: true });
+
+    directoryListView.addEventListener('touchend', () => {
+      if (pullActiveDistance >= maxPullCap - 5) {
+        // Lock and register confirmation loop
+        ptrIcon.classList.add('animate-spin');
+        setTimeout(() => {
+          window.location.reload();
+        }, 400);
+      } else {
+        // Reset element placement neatly if target thresholds aren't satisfied
+        ptrIndicator.style.opacity = '0';
+        ptrIndicator.style.transform = 'translateY(-16px) scale(0.75)';
+        ptrIcon.style.transform = 'rotate(0deg)';
+      }
+      touchStartOffsetY = 0;
+      pullActiveDistance = 0;
+    });
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', () => {
@@ -573,7 +635,7 @@
         const checkmarks = document.createElement('span');
         checkmarks.className = "flex items-center ml-1";
         checkmarks.innerHTML = data.status === 'read' ? 
-          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-sky-200" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>` :
+          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-sky-200" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>` :
           `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-white/40" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.72 6.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06L9 12.44l6.66-6.66a.75.75 0 011.06 0z" clip-rule="evenodd"/></svg>`;
         metaRow.appendChild(checkmarks);
       }
