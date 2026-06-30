@@ -10,6 +10,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Jitsi External Connection API for Embedded Video Calls -->
   <script src="https://meet.jit.si/external_api.js"></script>
+
+  <!-- OFFICIAL GLOBAL FIREBASE COMPAT BUNDLES -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -220,11 +226,9 @@
     </div>
   </div>
 
-  <!-- BALANCED COMPATIBLE GLOBAL PRODUCTION IMPORT SCRIPTS -->
-  <script type="module">
-    import { initializeApp } from "https://esm.sh/firebase@10.8.0/app";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://esm.sh/firebase@10.8.0/auth";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, onSnapshot, getDocs } from "https://esm.sh/firebase@10.8.0/firestore";
+  <script>
+    // Map script pointers explicitly 
+    const firebase = window.firebase;
 
     const firebaseConfig = {
       apiKey: "AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc",
@@ -284,7 +288,7 @@
     const replyPreviewText = document.getElementById('reply-preview-text');
     const btnCancelReply = document.getElementById('btn-cancel-reply');
 
-    // NATIVE-FEEL TOUCH-GESTURE PULL TO REFRESH DRIVER
+    // PULL TO REFRESH DRIVER
     const ptrIndicator = document.getElementById('ptr-indicator');
     const ptrIcon = document.getElementById('ptr-icon');
     let touchStartOffsetY = 0;
@@ -307,7 +311,6 @@
 
       if (computedDelta > 0) {
         pullActiveDistance = Math.min(computedDelta * 0.4, maxPullCap);
-        
         ptrIndicator.style.opacity = `${pullActiveDistance / maxPullCap}`;
         ptrIndicator.style.transform = `translateY(${pullActiveDistance}px) scale(${0.75 + (pullActiveDistance / maxPullCap) * 0.25})`;
         ptrIcon.style.transform = `rotate(${pullActiveDistance * 4}deg)`;
@@ -317,9 +320,7 @@
     directoryListView.addEventListener('touchend', () => {
       if (pullActiveDistance >= maxPullCap - 5) {
         ptrIcon.classList.add('animate-spin');
-        setTimeout(() => {
-          window.location.reload();
-        }, 400);
+        setTimeout(() => { window.location.reload(); }, 400);
       } else {
         ptrIndicator.style.opacity = '0';
         ptrIndicator.style.transform = 'translateY(-16px) scale(0.75)';
@@ -340,9 +341,11 @@
     }
 
     try {
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getFirestore(app);
+      app = firebase.initializeApp(firebaseConfig);
+      // FIX: Forces the Recaptcha Verifier to remain null to bypass iframe container checking errors
+      auth = firebase.auth();
+      auth.settings.appVerificationDisabledForTesting = true;
+      db = firebase.firestore();
       setupAuthObserver();
     } catch(error) {
       console.error(error);
@@ -356,11 +359,11 @@
     }
 
     function setupAuthObserver() {
-      onAuthStateChanged(auth, async (user) => {
+      auth.onAuthStateChanged(async (user) => {
         if (user) {
           currentUser = user;
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          currentUser.username = userDoc.exists() ? userDoc.data().username : user.email.split('@')[0];
+          const userDoc = await db.collection("users").doc(user.uid).get();
+          currentUser.username = userDoc.exists ? userDoc.data().username : user.email.split('@')[0];
 
           screenAuth.classList.add('hidden');
           appHeader.classList.remove('hidden');
@@ -427,7 +430,6 @@
 
     btnLaunchCall.addEventListener('click', () => {
       if (!activeChatId || !currentUser) return;
-
       screenVideoCall.classList.remove('hidden');
       jitsiCallRoot.innerHTML = ""; 
 
@@ -436,29 +438,16 @@
         width: '100%',
         height: '100%',
         parentNode: jitsiCallRoot,
-        userInfo: {
-          displayName: currentUser.username.toUpperCase()
-        },
-        configOverwrite: {
-          startWithAudioMuted: false,
-          startWithVideoMuted: false,
-          prejoinPageEnabled: false 
-        },
-        interfaceConfigOverwrite: {
-          TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup', 'tileview', 'toggle-camera']
-        }
+        userInfo: { displayName: currentUser.username.toUpperCase() },
+        configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false, prejoinPageEnabled: false },
+        interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup', 'tileview', 'toggle-camera'] }
       };
 
       currentJitsiConferenceInstance = new JitsiMeetExternalAPI("meet.jit.si", targetOptions);
-
-      currentJitsiConferenceInstance.addEventListener('videoConferenceLeft', () => {
-        terminateActiveVideoCallView();
-      });
+      currentJitsiConferenceInstance.addEventListener('videoConferenceLeft', () => { terminateActiveVideoCallView(); });
     });
 
-    btnEndCall.addEventListener('click', () => {
-      terminateActiveVideoCallView();
-    });
+    btnEndCall.addEventListener('click', () => { terminateActiveVideoCallView(); });
 
     function terminateActiveVideoCallView() {
       if (currentJitsiConferenceInstance) {
@@ -501,8 +490,8 @@
       if(isRegisterMode) {
         authStatusMsg.textContent = "Provisioning network partition...";
         try {
-          const credentials = await createUserWithEmailAndPassword(auth, synthesizedEmail, password);
-          await setDoc(doc(db, "users", credentials.user.uid), {
+          const credentials = await auth.createUserWithEmailAndPassword(synthesizedEmail, password);
+          await db.collection("users").doc(credentials.user.uid).set({
             uid: credentials.user.uid,
             username: userRawId,
             email: synthesizedEmail
@@ -513,7 +502,7 @@
       } else {
         authStatusMsg.textContent = "Validating secure keys...";
         try {
-          await signInWithEmailAndPassword(auth, synthesizedEmail, password);
+          await auth.signInWithEmailAndPassword(synthesizedEmail, password);
         } catch(err) {
           authStatusMsg.textContent = "Access Failure: Signature mismatch.";
         }
@@ -523,13 +512,12 @@
     async function loadUserSpaceDirectory() {
       if(!db || !currentUser) return;
       try {
-        const snap = await getDocs(collection(db, "users"));
+        const snap = await db.collection("users").get();
         directoryListView.innerHTML = "";
         
         snap.forEach((userDoc) => {
           const uData = userDoc.data();
           if(uData.uid === currentUser.uid) return;
-
           const partnerInitials = getInitialsToken(uData.username);
 
           const cardButton = document.createElement('button');
@@ -551,7 +539,6 @@
             selectedPartner = uData;
             const sortedSequence = [currentUser.uid, selectedPartner.uid].sort();
             activeChatId = `${sortedSequence[0]}_${sortedSequence[1]}`;
-            
             switchMobileLayoutViewState('chat');
             openDynamicMessagePipeline();
           });
@@ -563,17 +550,17 @@
     async function openDynamicMessagePipeline() {
       if(!db || !activeChatId) return;
       
-      const docRef = doc(db, "chats", activeChatId);
-      const checkSnap = await getDoc(docRef);
-      if(!checkSnap.exists()) {
-        await setDoc(docRef, {
+      const docRef = db.collection("chats").doc(activeChatId);
+      const checkSnap = await docRef.get();
+      if(!checkSnap.exists) {
+        await docRef.set({
           initialized: true,
           typing: { [currentUser.uid]: false, [selectedPartner.uid]: false }
         }, { merge: true });
       }
 
-      unsubscribeChatDoc = onSnapshot(docRef, (snap) => {
-        if(snap.exists()) {
+      unsubscribeChatDoc = docRef.onSnapshot((snap) => {
+        if(snap.exists) {
           const data = snap.data();
           const partnerTyping = data?.typing?.[selectedPartner.uid] === true;
           headerSubtitle.textContent = partnerTyping ? "typing packet stream..." : "Online Link Connected";
@@ -581,11 +568,11 @@
         }
       });
 
-      const messagesRef = collection(db, "chats", activeChatId, "messages");
-      const q = query(messagesRef, where("expireAt", ">", new Date().toISOString()));
+      const messagesRef = db.collection("chats").doc(activeChatId).collection("messages");
+      const q = messagesRef.where("expireAt", ">", new Date().toISOString());
 
       let pipelinePreheated = false;
-      unsubscribeMessages = onSnapshot(q, (snap) => {
+      unsubscribeMessages = q.onSnapshot((snap) => {
         const sortedDocs = [];
         snap.forEach(d => {
           const item = d.data();
@@ -594,16 +581,14 @@
         });
         
         sortedDocs.sort((x, y) => new Date(x.createdAt) - new Date(y.createdAt));
-        
         messageStreamScroller.innerHTML = "";
         const receiptsBatch = [];
 
         sortedDocs.forEach((data) => {
           const isMe = data.senderId === currentUser.uid;
-
           if(!isMe && data.status !== 'read') {
             if(activeViewportState === 'chat' && !document.hidden) {
-              receiptsBatch.push(doc(db, "chats", activeChatId, "messages", data.id));
+              receiptsBatch.push(db.collection("chats").doc(activeChatId).collection("messages").doc(data.id));
             }
             if (pipelinePreheated && (document.hidden || activeViewportState !== 'chat')) {
               const partnerLabel = getInitialsToken(selectedPartner.username);
@@ -614,10 +599,7 @@
         });
 
         pipelinePreheated = true;
-
-        receiptsBatch.forEach((ref) => {
-          updateDoc(ref, { status: 'read' }).catch(e => console.error(e));
-        });
+        receiptsBatch.forEach((ref) => { ref.update({ status: 'read' }).catch(e => console.error(e)); });
         messageStreamScroller.scrollTop = messageStreamScroller.scrollHeight;
       });
     }
@@ -686,7 +668,7 @@
         delBtn.className = "hover:text-rose-200 text-rose-300";
         delBtn.textContent = "Purge";
         delBtn.addEventListener('click', () => {
-          if(confirm("Permanently wipe this message node?")) deleteDoc(doc(db, "chats", activeChatId, "messages", data.id));
+          if(confirm("Permanently wipe this message node?")) db.collection("chats").doc(activeChatId).collection("messages").doc(data.id).delete();
         });
         contextMenu.appendChild(delBtn);
       }
@@ -715,7 +697,7 @@
     async function triggerMessageEditSequence(msgId, currentTextValue) {
       const updatedString = prompt("Modify frame message payload content:", currentTextValue);
       if (updatedString && updatedString.trim() && updatedString.trim() !== currentTextValue) {
-        await updateDoc(doc(db, "chats", activeChatId, "messages", msgId), { text: updatedString.trim() });
+        await db.collection("chats").doc(activeChatId).collection("messages").doc(msgId).update({ text: updatedString.trim() });
       }
     }
 
@@ -733,7 +715,7 @@
 
     async function dispatchMessagePayload(textBody, type = 'text') {
       if(!textBody || !db || !activeChatId) return;
-      const ref = collection(db, "chats", activeChatId, "messages");
+      const ref = db.collection("chats").doc(activeChatId).collection("messages");
       const timeNow = new Date();
       
       const payload = {
@@ -745,16 +727,12 @@
         status: 'sent'
       };
 
-      if (activeReplyPayload) {
-        payload.replyTo = activeReplyPayload;
-      }
+      if (activeReplyPayload) { payload.replyTo = activeReplyPayload; }
 
       try {
-        await addDoc(ref, payload);
+        await ref.add(payload);
         clearReplyState();
-      } catch(err) {
-        console.error(err);
-      }
+      } catch(err) { console.error(err); }
     }
 
     btnTriggerMedia.addEventListener('click', () => mediaAttachmentPicker.click());
@@ -762,16 +740,14 @@
       const file = e.target.files[0];
       if(!file) return;
       const reader = new FileReader();
-      reader.onload = async function(ev) {
-        await dispatchMessagePayload(ev.target.result, 'image');
-      };
+      reader.onload = async function(ev) { await dispatchMessagePayload(ev.target.result, 'image'); };
       reader.readAsDataURL(file);
       mediaAttachmentPicker.value = "";
     });
 
     function transmitTypingSignal(isTyping) {
       if(!db || !activeChatId || !currentUser) return;
-      updateDoc(doc(db, "chats", activeChatId), { [`typing.${currentUser.uid}`]: isTyping }).catch(() => {});
+      db.collection("chats").doc(activeChatId).update({ [`typing.${currentUser.uid}`]: isTyping }).catch(() => {});
     }
 
     chatMessageInput.addEventListener('input', () => {
@@ -793,24 +769,15 @@
 
     btnDeleteChat.addEventListener('click', async () => {
       if (!activeChatId || !db) return;
-      
       if (confirm("Completely wipe all historical synchronization lines from this thread node? This is non-reversible.")) {
         try {
-          const messagesRef = collection(db, "chats", activeChatId, "messages");
-          const snap = await getDocs(messagesRef);
-          
+          const snap = await db.collection("chats").doc(activeChatId).collection("messages").get();
           const deletions = [];
-          snap.forEach((msgDoc) => {
-            deletions.push(deleteDoc(doc(db, "chats", activeChatId, "messages", msgDoc.id)));
-          });
-          
+          snap.forEach((msgDoc) => { deletions.push(db.collection("chats").doc(activeChatId).collection("messages").doc(msgDoc.id).delete()); });
           await Promise.all(deletions);
-          
           teardownActiveRoomListeners();
           switchMobileLayoutViewState('directory');
-        } catch (err) {
-          alert("Purge Failure: " + err.message);
-        }
+        } catch (err) { alert("Purge Failure: " + err.message); }
       }
     });
 
@@ -818,7 +785,7 @@
     btnRefresh.addEventListener('click', () => window.location.reload());
     btnSubmitMessage.addEventListener('click', submitChatMessage);
     chatMessageInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitChatMessage(); });
-    btnSignout.addEventListener('click', () => { if(auth) signOut(auth); });
+    btnSignout.addEventListener('click', () => { if(auth) auth.signOut(); });
 
     function teardownActiveRoomListeners() {
       if(unsubscribeMessages) unsubscribeMessages();
