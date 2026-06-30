@@ -220,11 +220,11 @@
     </div>
   </div>
 
-  <!-- CLOUDFLARE SECURE ROUTED MODULE SCRIPTS -->
+  <!-- BALANCED COMPATIBLE GLOBAL PRODUCTION IMPORT SCRIPTS -->
   <script type="module">
-    import { initializeApp } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, onSnapshot, getDocs } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-firestore.js";
+    import { initializeApp } from "https://esm.sh/firebase@10.8.0/app";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://esm.sh/firebase@10.8.0/auth";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, onSnapshot, getDocs } from "https://esm.sh/firebase@10.8.0/firestore";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc",
