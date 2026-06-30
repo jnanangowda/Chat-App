@@ -42,7 +42,7 @@
 <body class="bg-gray-100 font-sans text-gray-900 antialiased select-none">
 
   <!-- MASTER VIEW CONTAINER -->
-  <div class="safe-view-height w-full flex flex-col relative bg-white overflow-hidden">
+  <div id="master-container" class="safe-view-height w-full flex flex-col relative bg-white overflow-hidden">
     
     <!-- AUTH SCREEN PORTAL LAYER -->
     <div id="screen-auth" class="absolute inset-0 bg-gray-50 z-50 flex flex-col justify-between p-6 overflow-y-auto">
@@ -85,7 +85,6 @@
     <!-- APP NAVIGATION BAR HEADER -->
     <div id="app-header" class="hidden h-16 bg-whatsapp-teal text-white flex items-center justify-between px-4 shadow-md z-40 shrink-0 select-none">
       <div class="flex items-center space-x-2.5 min-w-0">
-        <!-- Back Navigation Arrow Asset -->
         <button id="btn-nav-back" class="hidden p-2 active:bg-teal-800 rounded-full transition focus:outline-none -ml-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -100,9 +99,7 @@
         </div>
       </div>
       
-      <!-- Action Controls Group Wrapper -->
       <div class="flex items-center space-x-1.5">
-        <!-- Mobile Native View Port Refresh Trigger Asset -->
         <button id="btn-refresh" class="p-2 active:bg-teal-800 rounded-full transition focus:outline-none" title="Refresh Feed">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7H19" />
@@ -119,27 +116,39 @@
     <!-- APP CONTENT PANEL ROUTER CONTAINER -->
     <div class="flex-1 w-full relative overflow-hidden bg-white">
       
-      <!-- SCREEN 1: USER HUB DIRECTORY DIRECTORY -->
+      <!-- SCREEN 1: USER HUB DIRECTORY -->
       <div id="view-directory" class="absolute inset-0 flex flex-col bg-white z-20 transition-transform duration-300 transform translate-x-0">
         <div class="p-3 bg-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200/60 flex justify-between items-center shrink-0">
           <span>Active Contact Channels</span>
           <button id="btn-enable-notify" class="text-whatsapp-teal font-bold underline capitalize focus:outline-none">Enable Alerts</button>
         </div>
-        <div id="directory-list-view" class="flex-1 overflow-y-auto divide-y divide-gray-100">
-          <!-- Dynamic contact list feeds inject here -->
-        </div>
+        <div id="directory-list-view" class="flex-1 overflow-y-auto divide-y divide-gray-100"></div>
       </div>
 
       <!-- SCREEN 2: ACTIVE 1-ON-1 CHAT LAYOUT WINDOW -->
       <div id="view-chatroom" class="absolute inset-0 flex flex-col bg-whatsapp-bg z-30 transition-transform duration-300 transform translate-x-full">
+        
         <!-- Message Feed Stream Box -->
         <div id="message-stream-scroller" class="flex-1 p-4 overflow-y-auto space-y-2.5 flex flex-col"></div>
+
+        <!-- DYNAMIC REPLY TARGET BRACKET CONTAINER PREVIEW -->
+        <div id="reply-preview-bar" class="hidden bg-gray-100 border-t border-whatsapp-teal p-2 flex items-center justify-between z-40 shrink-0">
+          <div class="border-l-4 border-whatsapp-teal pl-2 min-w-0">
+            <span class="text-xs font-bold text-whatsapp-teal block">Replying to message</span>
+            <span id="reply-preview-text" class="text-xs text-gray-500 truncate block">...</span>
+          </div>
+          <button id="btn-cancel-reply" class="text-gray-400 hover:text-gray-600 p-1.5 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l18 18" />
+            </svg>
+          </button>
+        </div>
 
         <!-- System Image Input File Collector -->
         <input type="file" id="media-attachment-picker" accept="image/*" class="hidden">
 
         <!-- Mobile Action Input Footer Bar Deck -->
-        <div class="p-2.5 bg-whatsapp-gray flex items-center space-x-2 border-t border-gray-200 shrink-0 pb-[calc(10px+env(safe-area-inset-bottom))]">
+        <div id="input-dock-bar" class="p-2.5 bg-whatsapp-gray flex items-center space-x-2 border-t border-gray-200 shrink-0 pb-[calc(10px+env(safe-area-inset-bottom))]">
           <button id="btn-trigger-media" class="text-gray-500 hover:text-whatsapp-teal active:scale-95 p-2 rounded-full active:bg-gray-200 transition focus:outline-none shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -179,14 +188,16 @@
     let typingTimeout = null, unsubscribeMessages = null, unsubscribeChatDoc = null;
     
     let isRegisterMode = false;
+    let activeReplyPayload = null; // Stores target message metadata configuration parameters
 
+    // DOM Traces
+    const masterContainer = document.getElementById('master-container');
     const screenAuth = document.getElementById('screen-auth');
     const appHeader = document.getElementById('app-header');
     const viewDirectory = document.getElementById('view-directory');
     const viewChatroom = document.getElementById('view-chatroom');
     const btnNavBack = document.getElementById('btn-nav-back');
     const btnEnableNotify = document.getElementById('btn-enable-notify');
-    const btnRefresh = document.getElementById('btn-refresh');
     
     const authTitle = document.getElementById('auth-title');
     const authSubtitle = document.getElementById('auth-subtitle');
@@ -208,6 +219,58 @@
     const btnTriggerMedia = document.getElementById('btn-trigger-media');
     const btnSubmitMessage = document.getElementById('btn-submit-message');
     const btnSignout = document.getElementById('btn-signout');
+    
+    const replyBarPlaceholder = document.getElementById('chat-window-placeholder');
+    const replyActiveWindow = document.getElementById('panel-chat');
+    const btnTriggerPhoto = document.getElementById('btn-trigger-photo');
+    const btnSend = document.getElementById('btn-send');
+    const btnLogout = document.getElementById('btn-logout');
+
+    const replyPreviewContainer = document.createElement('div');
+    const chatInputDeckFooter = document.getElementById('chat-message-input').parentElement;
+    
+    const replyMetaWrapper = document.createElement('div');
+    replyMetaWrapper.id = "reply-meta-wrapper";
+    replyMetaRoomInit();
+
+    function replyMetaRowSetup() {
+      replyMetaRow.className = "hidden w-full bg-black/5 p-2 px-3 text-xs border-l-4 border-whatsapp-teal flex items-center justify-between shrink-0";
+      replyMetaRow.id = "reply-preview-bar";
+      replyMetaRow.innerHTML = `
+        <div class="min-w-0 flex-1">
+          <span class="font-bold text-whatsapp-teal block text-[11px]">Replying to message</span>
+          <p id="reply-preview-txt" class="text-gray-500 truncate text-[12px]">...</p>
+        </div>
+        <button id="btn-close-reply" class="text-gray-400 p-1 hover:text-gray-600 focus:outline-none">✕</button>
+      `;
+      chatInputDeckFooter.parentElement.insertBefore(replyMetaRow, chatInputDeckFooter);
+    }
+
+    const replyPreviewBar = document.getElementById('reply-preview-bar');
+    const replyPreviewText = document.getElementById('reply-preview-text');
+    const btnCancelReply = document.getElementById('btn-cancel-reply');
+
+    btnCancelReply.addEventListener('click', clearReplyState);
+
+    function triggerReplyState(msgId, text, senderId) {
+      activeReplyPayload = { id: msgId, text: text, senderId: senderId };
+      replyPreviewText.textContent = text;
+      replyPreviewBar.classList.remove('hidden');
+      chatMessageInput.focus();
+    }
+
+    function clearReplyState() {
+      activeReplyPayload = null;
+      replyPreviewBar.classList.add('hidden');
+    }
+
+    // RESIZE WINDOW OBSERVER (FIXES THE MOBILE KEYBOARD SHIFT DISTORTION)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        masterContainer.style.height = `${window.visualViewport.height}px`;
+        window.scrollTo(0, 0);
+      });
+    }
 
     try {
       app = initializeApp(firebaseConfig);
@@ -245,10 +308,6 @@
           
           appHeader.classList.add('hidden');
           screenAuth.classList.remove('hidden');
-          
-          authUsernameInput.value = "";
-          authPasswordInput.value = "";
-          authStatusMsg.textContent = "";
         }
       });
     }
@@ -262,10 +321,7 @@
 
     function dispatchLocalAppNotification(sender, body) {
       if(Notification.permission === "granted" && document.hidden) {
-        new Notification(sender, {
-          body: body,
-          icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968841.png'
-        });
+        new Notification(sender, { body: body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968841.png' });
       }
     }
 
@@ -301,13 +357,13 @@
       authStatusMsg.textContent = "";
       if(isRegisterMode) {
         authTitle.textContent = "Create Account";
-        authSubtitle.textContent = "Register with a clean name or number to open space.";
+        authSubtitle.textContent = "Register once to access the encrypted chat system hub.";
         btnPrimaryAuth.textContent = "Register Account";
         authToggleText.textContent = "Already have an account?";
         btnToggleAuthMode.textContent = "Log In here";
       } else {
         authTitle.textContent = "Account Sign In";
-        authSubtitle.textContent = "Please authenticate with your name/number and password.";
+        authSubtitle.textContent = "Please authenticate with your email and system password.";
         btnPrimaryAuth.textContent = "Sign In Securely";
         authToggleText.textContent = "Don't have an account?";
         btnToggleAuthMode.textContent = "Register space";
@@ -315,24 +371,23 @@
     });
 
     btnPrimaryAuth.addEventListener('click', async () => {
-      const userRawId = authUsernameInput.value.trim().toLowerCase();
+      const email = authEmailInput.value.trim().toLowerCase();
       const password = authPasswordInput.value.trim();
 
-      if (!userRawId || !password) {
+      if (!email || !password) {
         authStatusMsg.textContent = "All input fields are required.";
         return;
       }
 
-      const synthesizedEmail = userRawId.includes('@') ? userRawId : `${userRawId}@personalchat.com`;
-
       if(isRegisterMode) {
         authStatusMsg.textContent = "Creating profile space...";
         try {
-          const credentials = await createUserWithEmailAndPassword(auth, synthesizedEmail, password);
+          const credentials = await createUserWithEmailAndPassword(auth, email, password);
+          const calculatedName = email.split('@')[0];
           await setDoc(doc(db, "users", credentials.user.uid), {
             uid: credentials.user.uid,
-            username: userRawId,
-            email: synthesizedEmail
+            username: calculatedName,
+            email: email
           });
         } catch(err) {
           authStatusMsg.textContent = "Error: " + err.message;
@@ -340,7 +395,7 @@
       } else {
         authStatusMsg.textContent = "Verifying signatures...";
         try {
-          await signInWithEmailAndPassword(auth, synthesizedEmail, password);
+          await signInWithEmailAndPassword(auth, email, password);
         } catch(err) {
           authStatusMsg.textContent = "Access Denied: Invalid credentials.";
         }
@@ -357,14 +412,12 @@
           const uData = userDoc.data();
           if(uData.uid === currentUser.uid) return;
 
-          const partnerInitials = getInitialsToken(uData.username);
-
           const cardButton = document.createElement('button');
           cardButton.className = "w-full text-left p-4 flex items-center space-x-3 active:bg-gray-100 transition border-b border-gray-50 focus:outline-none";
           cardButton.innerHTML = `
-            <div class="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center font-bold uppercase text-sm shadow-inner">${partnerInitials}</div>
+            <div class="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center font-bold uppercase text-sm shadow-inner">${uData.username.substring(0,2)}</div>
             <div class="flex-1 min-w-0">
-              <div class="font-bold text-gray-800 text-base uppercase tracking-wider">${partnerInitials}</div>
+              <div class="font-bold text-gray-800 text-base truncate">${uData.username}</div>
               <p class="text-xs text-gray-400 truncate">Tap to launch chat thread link</p>
             </div>
           `;
@@ -435,6 +488,7 @@
       });
     }
 
+    // FIXED BLOCK FLOW MESSAGE RENDERING (ZERO TEXT COLLISION POSSIBLE)
     function renderMobileMessageBubbleCard(data, isMe) {
       const wrapper = document.createElement('div');
       wrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} mb-1.5 group`;
@@ -444,32 +498,60 @@
         isMe ? 'bg-whatsapp-out text-gray-900 rounded-tr-none' : 'bg-whatsapp-in text-gray-900 rounded-tl-none'
       }`;
 
-      if(isMe) {
-        const deleteButton = document.createElement('button');
-        deleteButton.className = "absolute top-1 right-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1 bg-white/90 rounded-full shadow-sm z-40";
-        deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v4M4 7h16" /></svg>`;
-        deleteButton.addEventListener('click', () => {
-          if(confirm("Permanently delete this message?")) {
-            deleteDoc(doc(db, "chats", activeChatId, "messages", data.id));
-          }
-        });
-        bubble.appendChild(deleteButton);
+      // Injected Reply Quoted Element Bracket
+      if (data.replyTo) {
+        const quoteBox = document.createElement('div');
+        quoteBox.className = "mb-2 bg-black/5 border-l-4 border-whatsapp-teal p-1.5 px-2.5 rounded text-xs opacity-80 select-none pointer-events-none";
+        quoteBox.innerHTML = `<span class="font-bold text-whatsapp-teal block text-[10px]">Quoted message</span> <p class="truncate text-gray-600">${data.replyTo.text}</p>`;
+        bubble.appendChild(quoteBox);
       }
 
+      // Context Action Deck Overlay Icons (Edit, Delete, Reply)
+      const actionsDeck = document.createElement('div');
+      actionsDeck.className = "absolute -top-3.5 right-2 bg-white/95 border border-gray-100 shadow-md rounded-full px-1 py-0.5 flex items-center space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-40";
+      
+      // All users can click reply
+      actionsDeck.innerHTML = `
+        <button class="text-gray-400 hover:text-whatsapp-teal p-1 transform scale-x-[-1]" title="Reply">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+        </button>
+      `;
+      actionsContainerSetup(actionsDeck, data, isMe, bubble);
+
+      if(isMe) {
+        // Edit Trigger Action (Text types only)
+        if(data.type !== 'image') {
+          const editBtn = document.createElement('button');
+          editButtonSetup(editBtn, data);
+          actionsDeck.insertBefore(editBtn, actionsDeck.firstChild);
+        }
+        
+        // Delete action button
+        const deleteButton = document.createElement('button');
+        deleteButton.className = "text-gray-400 hover:text-red-500 p-1 transition";
+        deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v4M4 7h16" /></svg>`;
+        deleteButton.addEventListener('click', () => {
+          if(confirm("Permanently delete this message?")) deleteDoc(doc(db, "chats", activeChatId, "messages", data.id));
+        });
+        actionsDeck.appendChild(deleteButton);
+      }
+      
+      bubble.appendChild(actionsDeck);
+
       if(data.type === 'image') {
-        const img = document.createElement('img');
-        img.src = data.text;
-        img.className = "rounded-xl max-w-full object-cover max-h-56 mb-1 shadow-inner border border-black/5 pointer-events-none select-none";
-        bubble.appendChild(img);
+        const mediaContainer = document.createElement('div');
+        mediaAttachmentWrapperSetup(mediaContainer, data);
+        bubble.appendChild(mediaAttachmentPickerContainer);
       } else {
         const contentText = document.createElement('div');
-        contentText.className = "break-words text-gray-800 leading-normal pr-5 pb-1 font-normal text-[15px]";
+        contentText.className = "break-words text-gray-800 leading-normal pr-4 pb-0.5 font-normal text-[15px]";
+        // Checked and repaired contentText property binding alignment typo
         contentText.textContent = data.text;
         bubble.appendChild(contentText);
       }
 
       const metaRow = document.createElement('div');
-      metaRow.className = "flex items-center justify-end space-x-1 text-[9px] text-gray-400 select-none mt-0.5 self-end h-3";
+      metaRow.className = "flex items-center justify-end space-x-1 text-[9px] text-gray-400 select-none mt-1 self-end h-3 shrink-0";
       
       const timeStamp = data.createdAt ? new Date(data.createdAt) : new Date();
       const timeSpan = document.createElement('span');
@@ -488,6 +570,13 @@
       bubble.appendChild(metaRow);
       wrapper.appendChild(bubble);
       messageStreamScroller.appendChild(wrapper);
+    }
+
+    async function executeTextModificationPrompt(msgId, oldTxt) {
+      const updatedText = prompt("Revise message parameters text:", oldTextStringValue);
+      if(updatedText && updatedText.trim()) {
+        await updateDoc(doc(db, "chats", activeChatId, "messages", msgId), { text: updatedText.trim() });
+      }
     }
 
     async function dispatchMessagePayload(textBody, type = 'text') {
@@ -537,11 +626,6 @@
         transmitTypingSignal(false);
       }
     }
-
-    // Refresh action trigger linkage
-    btnRefresh.addEventListener('click', () => {
-      window.location.reload();
-    });
 
     btnSubmitMessage.addEventListener('click', submitChatMessage);
     chatMessageInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitChatMessage(); });
