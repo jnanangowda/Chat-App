@@ -54,13 +54,13 @@
             </svg>
           </div>
           <h1 id="auth-title" class="text-2xl font-bold text-gray-800">Account Sign In</h1>
-          <p id="auth-subtitle" class="text-xs text-gray-400">Please authenticate with your email and system password.</p>
+          <p id="auth-subtitle" class="text-xs text-gray-400">Please authenticate with your name/number and password.</p>
         </div>
 
         <div class="space-y-4">
           <div>
-            <label for="auth-email" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Email Address</label>
-            <input type="email" id="auth-email" placeholder="name@domain.com" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none">
+            <label for="auth-username" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">User ID (Name or Number)</label>
+            <input type="text" id="auth-username" placeholder="e.g., naveen or 987654" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none" autocomplete="off">
           </div>
 
           <div>
@@ -93,9 +93,10 @@
         </button>
         <div id="header-avatar" class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center font-bold uppercase text-sm border border-teal-500 shadow-inner shrink-0">??</div>
         <div class="min-w-0">
-          <div id="header-title" class="font-bold text-base truncate">Personal Chat</div>
+          <!-- Shows first/last letter code directly -->
+          <div id="header-title" class="font-bold text-base uppercase tracking-wider">??</div>
           <div id="header-subtitle" class="text-[11px] text-teal-100 font-light flex items-center truncate">
-            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Secure Network
+            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Secure Link
           </div>
         </div>
       </div>
@@ -180,7 +181,7 @@
     
     const authTitle = document.getElementById('auth-title');
     const authSubtitle = document.getElementById('auth-subtitle');
-    const authEmailInput = document.getElementById('auth-email');
+    const authUsernameInput = document.getElementById('auth-username');
     const authPasswordInput = document.getElementById('auth-password');
     const btnPrimaryAuth = document.getElementById('btn-primary-auth');
     const authToggleText = document.getElementById('auth-toggle-text');
@@ -204,9 +205,18 @@
       auth = getAuth(app);
       db = getFirestore(app);
       
-      signOut(auth).then(() => { setupAuthObserver(); });
+      // Removed forced sign out to ensure persistent state across refreshes
+      setupAuthObserver();
     } catch(error) {
       console.error(error);
+    }
+
+    // Helper to extract first and last character safely
+    function getInitialsToken(str) {
+      if (!str) return "??";
+      const clean = str.trim();
+      if (clean.length === 1) return clean + clean;
+      return (clean[0] + clean[clean.length - 1]).toUpperCase();
     }
 
     function setupAuthObserver() {
@@ -230,7 +240,7 @@
           appHeader.classList.add('hidden');
           screenAuth.classList.remove('hidden');
           
-          authEmailInput.value = "";
+          authUsernameInput.value = "";
           authPasswordInput.value = "";
           authStatusMsg.textContent = "";
         }
@@ -259,16 +269,18 @@
         viewDirectory.classList.add('-translate-x-full');
         viewChatroom.classList.remove('translate-x-full');
         
-        headerAvatar.textContent = selectedPartner.username.substring(0,2).toUpperCase();
-        headerTitle.textContent = selectedPartner.username;
+        const partnerToken = getInitialsToken(selectedPartner.username);
+        headerAvatar.textContent = partnerToken;
+        headerTitle.textContent = partnerToken;
         headerSubtitle.textContent = "Online";
       } else {
         btnNavBack.classList.add('hidden');
         viewDirectory.classList.remove('-translate-x-full');
         viewChatroom.classList.add('translate-x-full');
         
-        headerAvatar.textContent = currentUser.username.substring(0,2).toUpperCase();
-        headerTitle.textContent = currentUser.username;
+        const currentToken = getInitialsToken(currentUser.username);
+        headerAvatar.textContent = currentToken;
+        headerTitle.textContent = currentToken;
         headerSubtitle.innerHTML = `<span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block mr-1"></span> Space Online`;
       }
     }
@@ -283,13 +295,13 @@
       authStatusMsg.textContent = "";
       if(isRegisterMode) {
         authTitle.textContent = "Create Account";
-        authSubtitle.textContent = "Register once to access the encrypted chat system hub.";
+        authSubtitle.textContent = "Register with a clean name or number to open space.";
         btnPrimaryAuth.textContent = "Register Account";
         authToggleText.textContent = "Already have an account?";
         btnToggleAuthMode.textContent = "Log In here";
       } else {
         authTitle.textContent = "Account Sign In";
-        authSubtitle.textContent = "Please authenticate with your email and system password.";
+        authSubtitle.textContent = "Please authenticate with your name/number and password.";
         btnPrimaryAuth.textContent = "Sign In Securely";
         authToggleText.textContent = "Don't have an account?";
         btnToggleAuthMode.textContent = "Register space";
@@ -297,23 +309,25 @@
     });
 
     btnPrimaryAuth.addEventListener('click', async () => {
-      const email = authEmailInput.value.trim().toLowerCase();
+      const userRawId = authUsernameInput.value.trim().toLowerCase();
       const password = authPasswordInput.value.trim();
 
-      if (!email || !password) {
+      if (!userRawId || !password) {
         authStatusMsg.textContent = "All input fields are required.";
         return;
       }
 
+      // Convert the pure name or number into a standard backend tracking email format
+      const synthesizedEmail = userRawId.includes('@') ? userRawId : `${userRawId}@personalchat.com`;
+
       if(isRegisterMode) {
         authStatusMsg.textContent = "Creating profile space...";
         try {
-          const credentials = await createUserWithEmailAndPassword(auth, email, password);
-          const calculatedName = email.split('@')[0];
+          const credentials = await createUserWithEmailAndPassword(auth, synthesizedEmail, password);
           await setDoc(doc(db, "users", credentials.user.uid), {
             uid: credentials.user.uid,
-            username: calculatedName,
-            email: email
+            username: userRawId, // Preserves name/number string accurately
+            email: synthesizedEmail
           });
         } catch(err) {
           authStatusMsg.textContent = "Error: " + err.message;
@@ -321,7 +335,7 @@
       } else {
         authStatusMsg.textContent = "Verifying signatures...";
         try {
-          await signInWithEmailAndPassword(auth, email, password);
+          await signInWithEmailAndPassword(auth, synthesizedEmail, password);
         } catch(err) {
           authStatusMsg.textContent = "Access Denied: Invalid credentials.";
         }
@@ -338,12 +352,14 @@
           const uData = userDoc.data();
           if(uData.uid === currentUser.uid) return;
 
+          const partnerInitials = getInitialsToken(uData.username);
+
           const cardButton = document.createElement('button');
           cardButton.className = "w-full text-left p-4 flex items-center space-x-3 active:bg-gray-100 transition border-b border-gray-50 focus:outline-none";
           cardButton.innerHTML = `
-            <div class="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center font-bold uppercase text-sm shadow-inner">${uData.username.substring(0,2)}</div>
+            <div class="w-11 h-11 bg-whatsapp-teal text-white rounded-full flex items-center justify-center font-bold uppercase text-sm shadow-inner">${partnerInitials}</div>
             <div class="flex-1 min-w-0">
-              <div class="font-bold text-gray-800 text-base truncate">${uData.username}</div>
+              <div class="font-bold text-gray-800 text-base uppercase tracking-wider">${partnerInitials}</div>
               <p class="text-xs text-gray-400 truncate">Tap to launch chat thread link</p>
             </div>
           `;
@@ -398,7 +414,8 @@
           if(!isMe && data.status !== 'read') {
             receiptsBatch.push(doc(db, "chats", activeChatId, "messages", msgDoc.id));
             if (pipelinePreheated) {
-              dispatchLocalAppNotification(selectedPartner.username, data.type === 'image' ? '📷 Shared a photo' : data.text);
+              const partnerLabel = getInitialsToken(selectedPartner.username);
+              dispatchLocalAppNotification(partnerLabel, data.type === 'image' ? '📷 Shared a photo' : data.text);
             }
           }
           renderMobileMessageBubbleCard(data, isMe);
