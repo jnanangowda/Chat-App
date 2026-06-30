@@ -8,6 +8,8 @@
   <title>Personal Space Chat</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Jitsi External Connection API for Embedded Video Calls -->
+  <script src="https://meet.jit.si/external_api.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -55,7 +57,6 @@
     input, button {
       -webkit-tap-highlight-color: transparent;
     }
-    /* Smooth bounce transition for custom refresh drawer */
     #ptr-indicator {
       transition: transform 0.1s ease-out, opacity 0.1s ease-out;
       will-change: transform, opacity;
@@ -67,10 +68,25 @@
   <!-- MASTER APP CONTAINER -->
   <div id="master-container" class="safe-view-height w-full flex flex-col relative bg-white overflow-hidden max-w-md mx-auto md:shadow-2xl">
     
+    <!-- FULLSCREEN VIDEO CALL OVERLAY FRAME -->
+    <div id="screen-videocall" class="hidden absolute inset-0 bg-slate-950 z-50 flex flex-col pt-[calc(env(safe-area-inset-top))]">
+      <div class="h-14 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between px-4 z-50">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></div>
+          <span class="text-xs font-bold text-slate-300 uppercase tracking-widest">Secure Video Link</span>
+        </div>
+        <button id="btn-end-call" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg transition duration-200">
+          Disconnect Call
+        </button>
+      </div>
+      <!-- Video Frame Target Anchor Container Element -->
+      <div id="jitsi-call-root" class="flex-1 w-full bg-slate-950"></div>
+    </div>
+
     <!-- DYNAMIC PULL TO REFRESH POPUP INDICATOR -->
     <div id="ptr-indicator" class="absolute top-20 left-0 right-0 flex justify-center items-center z-50 pointer-events-none opacity-0 scale-75 transform -translate-y-4">
       <div class="bg-white text-app-accent p-2.5 rounded-full shadow-lg border border-slate-100 flex items-center justify-center">
-        <svg id="ptr-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg id="ptr-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7H19" />
         </svg>
       </div>
@@ -131,7 +147,13 @@
         </div>
       </div>
       
-      <div class="flex items-center space-x-1">
+      <div class="flex items-center space-x-0.5">
+        <!-- VIDEO CALL ACTIVATION KEYHOOK -->
+        <button id="btn-launch-call" class="hidden p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition" title="Establish Video Call Stream">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
         <button id="btn-delete-chat" class="hidden p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition" title="Clear History Assets">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -222,6 +244,7 @@
     let isRegisterMode = false;
     let activeReplyPayload = null;
     let activeViewportState = 'directory';
+    let currentJitsiConferenceInstance = null;
 
     // DOM Mappings
     const masterContainer = document.getElementById('master-container');
@@ -231,6 +254,10 @@
     const viewChatroom = document.getElementById('view-chatroom');
     const btnNavBack = document.getElementById('btn-nav-back');
     const btnDeleteChat = document.getElementById('btn-delete-chat');
+    const btnLaunchCall = document.getElementById('btn-launch-call');
+    const screenVideoCall = document.getElementById('screen-videocall');
+    const btnEndCall = document.getElementById('btn-end-call');
+    const jitsiCallRoot = document.getElementById('jitsi-call-root');
     const btnEnableNotify = document.getElementById('btn-enable-notify');
     const btnRefresh = document.getElementById('btn-refresh');
     
@@ -267,7 +294,6 @@
     const maxPullCap = 75; 
 
     directoryListView.addEventListener('touchstart', (e) => {
-      // Trigger execution only if the scroll view container is pinned exactly at the top boundary
       if (directoryListView.scrollTop === 0 && activeViewportState === 'directory') {
         touchStartOffsetY = e.touches[0].clientY;
       } else {
@@ -282,7 +308,6 @@
       const computedDelta = currentMoveY - touchStartOffsetY;
 
       if (computedDelta > 0) {
-        // Apply micro resistance factor calculation to simulate physics weight
         pullActiveDistance = Math.min(computedDelta * 0.4, maxPullCap);
         
         ptrIndicator.style.opacity = `${pullActiveDistance / maxPullCap}`;
@@ -291,15 +316,13 @@
       }
     }, { passive: true });
 
-    directoryListView.addEventListener('touchend', () => {
+    directoryListView.addEventListener('touched', () => {
       if (pullActiveDistance >= maxPullCap - 5) {
-        // Lock and register confirmation loop
         ptrIcon.classList.add('animate-spin');
         setTimeout(() => {
           window.location.reload();
         }, 400);
       } else {
-        // Reset element placement neatly if target thresholds aren't satisfied
         ptrIndicator.style.opacity = '0';
         ptrIndicator.style.transform = 'translateY(-16px) scale(0.75)';
         ptrIcon.style.transform = 'rotate(0deg)';
@@ -376,6 +399,7 @@
       if (targetState === 'chat') {
         btnNavBack.classList.remove('hidden');
         btnDeleteChat.classList.remove('hidden');
+        btnLaunchCall.classList.remove('hidden');
         viewDirectory.classList.add('-translate-x-full');
         viewChatroom.classList.remove('translate-x-full');
         
@@ -386,6 +410,7 @@
       } else {
         btnNavBack.classList.add('hidden');
         btnDeleteChat.classList.add('hidden');
+        btnLaunchCall.classList.add('hidden');
         viewDirectory.classList.remove('-translate-x-full');
         viewChatroom.classList.add('translate-x-full');
         
@@ -401,6 +426,52 @@
       teardownActiveRoomListeners();
       switchMobileLayoutViewState('directory');
     });
+
+    // INTEGRATED JITSI VIDEO CONFERENCING DRIVER ENGINE 
+    btnLaunchCall.addEventListener('click', () => {
+      if (!activeChatId || !currentUser) return;
+
+      screenVideoCall.classList.remove('hidden');
+      jitsiCallRoot.innerHTML = ""; 
+
+      const targetOptions = {
+        roomName: `PersonalSpaceRoom_${activeChatId}`,
+        width: '100%',
+        height: '100%',
+        parentNode: jitsiCallRoot,
+        userInfo: {
+          displayName: currentUser.username.toUpperCase()
+        },
+        configOverwrite: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false 
+        },
+        interfaceConfigOverwrite: {
+          TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup', 'tileview', 'toggle-camera']
+        }
+      };
+
+      currentJitsiConferenceInstance = new JitsiMeetExternalAPI("meet.jit.si", targetOptions);
+
+      // Listen for local call destruction event strings inside the iframe
+      currentJitsiConferenceInstance.addEventListener('videoConferenceLeft', () => {
+        terminateActiveVideoCallView();
+      });
+    });
+
+    btnEndCall.addEventListener('click', () => {
+      terminateActiveVideoCallView();
+    });
+
+    function terminateActiveVideoCallView() {
+      if (currentJitsiConferenceInstance) {
+        currentJitsiConferenceInstance.dispose();
+        currentJitsiConferenceInstance = null;
+      }
+      jitsiCallRoot.innerHTML = "";
+      screenVideoCall.classList.add('hidden');
+    }
 
     btnToggleAuthMode.addEventListener('click', () => {
       isRegisterMode = !isRegisterMode;
