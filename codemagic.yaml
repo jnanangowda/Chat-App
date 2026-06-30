@@ -6,10 +6,15 @@ workflows:
     environment:
       flutter: stable
     scripts:
+      - name: Recreate missing Android platform directories
+        script: |
+          flutter create --platforms=android .
       - name: Fetch Flutter dependencies
-        script: flutter pub get
+        script: |
+          flutter pub get
       - name: Build Android APK
-        script: flutter build apk --debug -t main.dart
+        script: |
+          flutter build apk --debug
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
     publishing:
