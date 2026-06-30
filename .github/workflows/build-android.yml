@@ -16,25 +16,37 @@ jobs:
 
       - name: Isolate Web Assets and Package App
         run: |
-          # 1. Initialize npm project
+          # 1. Clear out any duplicate local package configs to prevent setup crashes
+          rm -f package.json package-lock.json
+          rm -rf android
+          
+          # 2. Re-initialize a clean npm workspace
           npm init -y
           
-          # 2. Install core mobile wrapper tools
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          # 3. Install fresh, unconflicted core wrapper tools
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
           npm install cordova-plugin-android-permissions
           
-          # 3. Create a clean web asset directory to avoid directory bloat crashes
+          # 4. Enforce a clean web directory destination 
           mkdir -p www
           cp index.html www/
           
-          # 4. Initialize mobile configurations aiming directly at the clean folder
+          # 5. Build native Android scaffolding pointing directly to our clean folder
           npx cap init "Personal Chat" "com.personalchat.app" --web-dir=www
           npx cap add android
           npx cap sync
 
+      - name: Setup Java JDK Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
       - name: Build Android Binary APK
         run: |
-          cd android && ./gradlew assembleDebug
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Export Delivery Package Artifact
         uses: actions/upload-artifact@v4
