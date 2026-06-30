@@ -9,7 +9,7 @@ workflows:
       - name: Fetch Flutter dependencies
         script: flutter pub get
       - name: Build Android APK
-        script: flutter build apk --debug
+        script: flutter build apk --debug -t main.dart
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
     publishing:
