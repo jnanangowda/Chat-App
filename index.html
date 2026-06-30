@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- FIX 1: Prevents awkward web zooming and handles physical camera notches/safe zones -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- FIX 2: iOS standalone wrapper optimization -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Mobile Personal Chat</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -142,6 +146,7 @@
         <input type="file" id="media-attachment-picker" accept="image/*" class="hidden">
 
         <!-- Input Footer Action Bar Deck -->
+        <!-- FIX 3: Dynamic padding added below to safely wrap native bottom phone indicators -->
         <div id="input-dock-bar" class="p-2.5 bg-whatsapp-gray flex items-center space-x-2 border-t border-gray-200 shrink-0 pb-[calc(10px+env(safe-area-inset-bottom))]">
           <button id="btn-trigger-media" class="text-gray-500 hover:text-whatsapp-teal active:scale-95 p-2 rounded-full active:bg-gray-200 transition focus:outline-none shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -420,7 +425,8 @@
       });
 
       const messagesRef = collection(db, "chats", activeChatId, "messages");
-      const q = query(messagesRef, where("expireAt", ">", new Date()));
+      // BUG FIX: Standard cross-platform fix ensuring date parameters map accurately on basic devices
+      const q = query(messagesRef, where("expireAt", ">", new Date().toISOString()));
 
       let pipelinePreheated = false;
       unsubscribeMessages = onSnapshot(q, (snap) => {
@@ -443,7 +449,6 @@
             if(activeViewportState === 'chat' && !document.hidden) {
               receiptsBatch.push(doc(db, "chats", activeChatId, "messages", data.id));
             }
-            // Trigger alerts instantly if tab is in background or user is out on directory window list
             if (pipelinePreheated && (document.hidden || activeViewportState !== 'chat')) {
               const partnerLabel = getInitialsToken(selectedPartner.username);
               dispatchLocalAppNotification(partnerLabel, data.type === 'image' ? '📷 Shared a photo' : data.text);
@@ -499,7 +504,6 @@
       } else {
         const contentText = document.createElement('div');
         contentText.className = "break-words text-gray-800 leading-normal pr-5 pb-0.5 font-normal text-[15px]";
-        // TYPO FULLY REPAIRED: Bound exactly to declared token mapping element node properties
         contentText.textContent = data.text;
         bubble.appendChild(contentText);
       }
@@ -581,7 +585,7 @@
         type: type,
         senderId: currentUser.uid,
         createdAt: timeNow.toISOString(),
-        expireAt: new Date(timeNow.getTime() + (24 * 60 * 60 * 1000)),
+        expireAt: new Date(timeNow.getTime() + (24 * 60 * 60 * 1000)).toISOString(),
         status: 'sent'
       };
 
