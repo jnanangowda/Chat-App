@@ -14,33 +14,39 @@ jobs:
         with:
           node-version: 20
 
-      - name: Isolate Web Assets and Package App
-        run: |
-          # 1. Clear out any duplicate local package configs to prevent setup crashes
-          rm -f package.json package-lock.json
-          rm -rf android
-          
-          # 2. Re-initialize a clean npm workspace
-          npm init -y
-          
-          # 3. Install fresh, unconflicted core wrapper tools
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
-          npm install cordova-plugin-android-permissions
-          
-          # 4. Enforce a clean web directory destination 
-          mkdir -p www
-          cp index.html www/
-          
-          # 5. Build native Android scaffolding pointing directly to our clean folder
-          npx cap init "Personal Chat" "com.personalchat.app" --web-dir=www
-          npx cap add android
-          npx cap sync
-
       - name: Setup Java JDK Environment
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
+
+      - name: Package App Assets without Prompts
+        run: |
+          # 1. Clean workspace to avoid project locks
+          rm -f package.json package-lock.json capacitor.config.*
+          rm -rf android www
+          
+          # 2. Build a fresh npm structure
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npm install cordova-plugin-android-permissions
+          
+          # 3. Create a isolated web asset directory
+          mkdir -p www
+          cp index.html www/
+          
+          # 4. Generate the config file directly to bypass interactive CLI lockups
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.personalchat.app",
+            "appName": "Personal Chat",
+            "webDir": "www"
+          }
+          EOF
+          
+          # 5. Attach native scaffolding and sync assets
+          npx cap add android
+          npx cap sync
 
       - name: Build Android Binary APK
         run: |
