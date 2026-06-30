@@ -6,7 +6,6 @@ import 'screens/chat_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Directly linking your Firebase keys inside the code
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc",
@@ -29,7 +28,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Professional Chat App',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
@@ -101,7 +100,7 @@ class FakeLoginScreen extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.all(12.0),
                   child: Text(
-                    '💡 Your live backend is connected! Run your new compilation build inside Codemagic now to download your complete chat application.',
+                    '💡 Code corrected! Head back to Codemagic and hit Re-run build.',
                     style: TextStyle(fontSize: 13, color: Colors.black87),
                   ),
                 ),
