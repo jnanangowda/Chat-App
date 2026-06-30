@@ -1,15 +1,3 @@
-Here is the updated, mobile-first codebase. This version transforms the layout into a native app matrix ($100\text{dvh}$ mobile view) that scales, handles on-screen mobile keyboard shifts gracefully, and changes how user authentication persists.
-
-### Mobile-First Fixes Applied
-
-* **Dynamic Full Viewport Bounds (`h-[100dvh]`):** Replaced static height markers with dynamic view metrics so the app fits mobile screens and doesn't cut off when the mobile soft-keyboard slides up.
-* **Forced Login on Every Refresh:** Added an automatic session truncation statement right at script boot. Every single time the web app is loaded or refreshed, it forces a clean logout, requiring users to input their credentials.
-* **Zero Overlay Message Bubbles:** Built the message bubbles using a vertical flex-stack wrapper layout. The text content and the time metadata sit in distinct block layers, making it structurally impossible for text to overlay or collide.
-* **Native Touch-Targets:** Buttons, inputs, and list rows feature extended click regions matching iOS/Android design rules.
-
-Replace your entire `index.html` file on GitHub with this code:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +65,7 @@ Replace your entire `index.html` file on GitHub with this code:
 
           <div>
             <label for="auth-password" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
-            <input type="password" id="auth-password" placeholder="••••••" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none tracking-widest">
+            <input type="password" id="auth-password" placeholder="•••••" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-whatsapp-teal/20 focus:border-whatsapp-teal text-base transition appearance-none tracking-widest">
           </div>
 
           <button id="btn-primary-auth" class="w-full bg-whatsapp-teal text-white py-3.5 rounded-xl font-bold text-base hover:bg-whatsapp-light active:scale-[0.99] transition shadow-md">
@@ -181,9 +169,8 @@ Replace your entire `index.html` file on GitHub with this code:
     let currentUser = null, selectedPartner = null, activeChatId = null;
     let typingTimeout = null, unsubscribeMessages = null, unsubscribeChatDoc = null;
     
-    let isRegisterMode = false; // Default presentation layout set to sign-in
+    let isRegisterMode = false;
 
-    // UI Document Target Traces
     const screenAuth = document.getElementById('screen-auth');
     const appHeader = document.getElementById('app-header');
     const viewDirectory = document.getElementById('view-directory');
@@ -212,16 +199,14 @@ Replace your entire `index.html` file on GitHub with this code:
     const btnSubmitMessage = document.getElementById('btn-submit-message');
     const btnSignout = document.getElementById('btn-signout');
 
-    // INITIALIZE FIREBASE & FORCE SECURITY DISCONNECT ON REFRESH
     try {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
       
-      // Every time page refreshes, clear session storage cache data
       signOut(auth).then(() => { setupAuthObserver(); });
     } catch(error) {
-      console.error("System Boot Core Engine Fault Trace: ", error);
+      console.error(error);
     }
 
     function setupAuthObserver() {
@@ -252,7 +237,6 @@ Replace your entire `index.html` file on GitHub with this code:
       });
     }
 
-    // WEB WORKER PUSH NOTIFICATIONS HANDLERS
     if(Notification.permission === "granted") btnEnableNotify.classList.add('hidden');
     btnEnableNotify.addEventListener('click', () => {
       Notification.requestPermission().then(perm => {
@@ -269,7 +253,6 @@ Replace your entire `index.html` file on GitHub with this code:
       }
     }
 
-    // MOBILE ADAPTIVE COMPACT PANELS ROUTER SWITCH
     function switchMobileLayoutViewState(targetState) {
       if (targetState === 'chat') {
         btnNavBack.classList.remove('hidden');
@@ -295,7 +278,6 @@ Replace your entire `index.html` file on GitHub with this code:
       switchMobileLayoutViewState('directory');
     });
 
-    // INTERCHANGEABLE IDENTITY PANEL CHANNELS TOGGLE
     btnToggleAuthMode.addEventListener('click', () => {
       isRegisterMode = !isRegisterMode;
       authStatusMsg.textContent = "";
@@ -431,13 +413,11 @@ Replace your entire `index.html` file on GitHub with this code:
       });
     }
 
-    // COMPLETELY WIPE OVERLAPPING: Vertical block flow implementation
     function renderMobileMessageBubbleCard(data, isMe) {
       const wrapper = document.createElement('div');
       wrapper.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} mb-1.5 group`;
 
       const bubble = document.createElement('div');
-      // Added block formatting padding boundaries tracking structural specifications
       bubble.className = `max-w-[82%] rounded-2xl px-3 py-2 shadow-sm text-[15px] flex flex-col relative ${
         isMe ? 'bg-whatsapp-out text-gray-900 rounded-tr-none' : 'bg-whatsapp-in text-gray-900 rounded-tl-none'
       }`;
@@ -461,13 +441,11 @@ Replace your entire `index.html` file on GitHub with this code:
         bubble.appendChild(img);
       } else {
         const contentText = document.createElement('div');
-        // Extended right padding margins ensures character blocks never collide with absolute position checkmarks
         contentText.className = "break-words text-gray-800 leading-normal pr-5 pb-1 font-normal text-[15px]";
-        contentText.textContent = data.text;
+        textNode.textContent = data.text;
         bubble.appendChild(contentText);
       }
 
-      // Metadata Row Footer (Structured cleanly under the flow)
       const metaRow = document.createElement('div');
       metaRow.className = "flex items-center justify-end space-x-1 text-[9px] text-gray-400 select-none mt-0.5 self-end h-3";
       
@@ -549,5 +527,3 @@ Replace your entire `index.html` file on GitHub with this code:
   </script>
 </body>
 </html>
-
-```
