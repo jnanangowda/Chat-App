@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Professional Chat App',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          primarySwatch: Colors.deepPurple,
           useMaterial3: true,
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.deepPurple,
@@ -34,13 +34,11 @@ class MyApp extends StatelessWidget {
             elevation: 0,
           ),
         ),
-        debugShowCheckedModeBanner: false,
         home: Consumer<AuthProvider>(
           builder: (context, authProvider, _) {
-            if (authProvider.isAuthenticated) {
-              return const HomeScreen();
-            }
-            return const LoginScreen();
+            return authProvider.isAuthenticated
+                ? const HomeScreen()
+                : const LoginScreen();
           },
         ),
       ),

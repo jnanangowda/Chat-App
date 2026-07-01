@@ -1,14 +1,32 @@
-import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    return FirebaseOptions(
-      apiKey: 'AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc',
-      authDomain: 'chatapp-81c13.firebaseapp.com',
-      projectId: 'chatapp-81c13',
-      storageBucket: 'chatapp-81c13.firebasestorage.app',
-      messagingSenderId: '907954904111',
-      appId: '1:907954904111:web:f4245d78b8d46b898fbada',
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return android;
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return ios;
+    }
+    throw UnsupportedError(
+      'DefaultFirebaseOptions are not supported for this platform.',
     );
   }
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'YOUR_ANDROID_API_KEY',
+    appId: 'YOUR_ANDROID_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'YOUR_iOS_API_KEY',
+    appId: 'YOUR_iOS_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
+    iosBundleId: 'com.example.professionalchatapp',
+  );
 }
