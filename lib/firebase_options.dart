@@ -14,19 +14,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc',
+    appId: '1:907954904111:android:f4245d78b8d46b898fbada',
+    messagingSenderId: '907954904111',
+    projectId: 'chatapp-81c13',
+    storageBucket: 'chatapp-81c13.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_iOS_API_KEY',
-    appId: 'YOUR_iOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyBKdjX2DAcgT_yklBZdTe9D6hIbQAiE-vc',
+    appId: '1:907954904111:ios:f4245d78b8d46b898fbada',
+    messagingSenderId: '907954904111',
+    projectId: 'chatapp-81c13',
+    storageBucket: 'chatapp-81c13.firebasestorage.app',
     iosBundleId: 'com.example.professionalchatapp',
   );
 }
